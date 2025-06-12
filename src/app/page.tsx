@@ -9,7 +9,7 @@ import type { ChatMessage, ChatSession, KnowledgeBaseFile } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Icons } from '@/components/icons';
 
-const API_BASE_URL = 'https://34.134.224.160'; // Updated API Base URL
+const API_BASE_URL = 'http://34.134.224.160:8000'; // Updated API Base URL
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -414,5 +414,7 @@ export default function ChatPage() {
     </ChatLayout>
   );
 }
+
+    
 
     
