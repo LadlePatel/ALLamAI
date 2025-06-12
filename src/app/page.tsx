@@ -31,7 +31,6 @@ export default function ChatPage() {
       const storedSessions = localStorage.getItem(SESSIONS_STORAGE_KEY);
       if (storedSessions) {
         const parsedSessions = JSON.parse(storedSessions) as ChatSession[];
-        // Ensure messages are empty initially, will be fetched if session is active
         parsedSessions.forEach(s => s.messages = []); 
         setSessions(parsedSessions);
 
@@ -40,40 +39,52 @@ export default function ChatPage() {
           setCurrentSessionId(storedCurrentSessionId);
         } else if (parsedSessions.length > 0) {
           setCurrentSessionId(parsedSessions[0].id);
+        } else {
+          // If no sessions, create one automatically
+          handleCreateNewSession(false); // Don't switch to it if one will be loaded
         }
+      } else {
+        // If no sessions in local storage, create a default one
+        handleCreateNewSession(true);
       }
     } catch (error) {
       console.error("Failed to load session list from localStorage", error);
       toast({ title: "Error", description: "Could not load session data.", variant: "destructive" });
+      handleCreateNewSession(true); // Create a new one on error
     }
-  }, [toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [toast]); // handleCreateNewSession removed to avoid cycle
 
   // Fetch messages for the current session when it changes or on mount
   useEffect(() => {
     if (!currentSessionId || !isMounted) return;
 
-    // If the current session already has messages, don't re-fetch unless explicitly needed.
-    // This check can be refined based on specific requirements (e.g., always refresh, refresh after X time).
     const sessionToFetch = sessions.find(s => s.id === currentSessionId);
-    if (sessionToFetch && sessionToFetch.messages && sessionToFetch.messages.length > 0 && !isLoading) { // Added !isLoading to prevent re-fetch during other ops
-      // console.log("Messages already present for session:", currentSessionId);
-      // return; 
-      // Decide if you want to return here or always fetch. For now, let's allow re-fetch if needed.
-    }
-
+    // Optimization: If messages are already there and not loading, maybe don't re-fetch.
+    // For now, let's re-fetch to ensure data consistency with backend, could be refined.
+    // if (sessionToFetch && sessionToFetch.messages && sessionToFetch.messages.length > 0 && !isLoading) {
+    //   return;
+    // }
 
     const fetchMessages = async () => {
       setIsLoading(true);
       try {
         const response = await fetch(`${API_BASE_URL}/sessions/${currentSessionId}/messages`);
         if (!response.ok) {
-          throw new Error(`Failed to fetch messages: ${response.statusText}`);
+          // If session not found on server (404), it might be a new client-side session
+          // In this case, don't throw error, just keep messages empty.
+          if (response.status === 404) {
+            setSessions(prevSessions =>
+              prevSessions.map(s =>
+                s.id === currentSessionId ? { ...s, messages: [] } : s
+              )
+            );
+            return; 
+          }
+          throw new Error(`Failed to fetch messages: ${response.status} ${response.statusText}`);
         }
         const messagesData = await response.json();
-        
-        // Ensure messagesData.messages is an array; default to empty array if not.
         const fetchedMessages = Array.isArray(messagesData.messages) ? messagesData.messages : (Array.isArray(messagesData) ? messagesData : []);
-
 
         setSessions(prevSessions =>
           prevSessions.map(s =>
@@ -89,7 +100,7 @@ export default function ChatPage() {
         });
         setSessions(prevSessions =>
           prevSessions.map(s =>
-            s.id === currentSessionId ? { ...s, messages: [] } : s // Clear messages on error
+            s.id === currentSessionId ? { ...s, messages: [] } : s
           )
         );
       } finally {
@@ -98,14 +109,14 @@ export default function ChatPage() {
     };
 
     fetchMessages();
-  }, [currentSessionId, isMounted, toast]); // sessions removed from deps to avoid loop if fetchMessages modifies sessions
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentSessionId, isMounted, toast]);
 
 
   // Save session list to localStorage when it changes
   useEffect(() => {
-    if (!isMounted) return; // Don't save on initial server render or before client mount
+    if (!isMounted) return;
     try {
-      // Store sessions without their messages to keep localStorage light
       const sessionsToStore = sessions.map(({ messages, ...rest }) => rest);
       localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(sessionsToStore));
       
@@ -119,17 +130,10 @@ export default function ChatPage() {
     }
   }, [sessions, currentSessionId, isMounted]);
 
-
-  const updateSessionMessages = useCallback((sessionId: string, newMessages: ChatMessage[]) => {
-    setSessions(prevSessions =>
-      prevSessions.map(s => (s.id === sessionId ? { ...s, messages: newMessages } : s))
-    );
-  }, []);
-
   const addMessageToSession = useCallback((sessionId: string, message: ChatMessage) => {
     setSessions(prevSessions =>
       prevSessions.map(s =>
-        s.id === sessionId ? { ...s, messages: [...(s.messages || []), message] } : s // Ensure s.messages exists
+        s.id === sessionId ? { ...s, messages: [...(s.messages || []), message] } : s
       )
     );
   }, []);
@@ -153,6 +157,7 @@ export default function ChatPage() {
       const apiRequestBody = {
         session_id: currentSession.id,
         user_input: userInput,
+        // The backend now manages conversation history and KB context per session
       };
 
       const response = await fetch(`${API_BASE_URL}/chat`, {
@@ -174,9 +179,11 @@ export default function ChatPage() {
         id: generateId(),
         role: 'bot',
         content: aiResponseData.response, 
-        timestamp: Date.now(),
+        timestamp: Date.now(), // Keep timestamp for ordering, but won't display for bot
         knowledgeBaseUsed: aiResponseData.knowledge_base_used,
         fromCache: aiResponseData.from_cache,
+        cosineDistance: aiResponseData.cosine_distance,
+        promptSentToModel: aiResponseData.prompt_sent_to_model,
         durationMs: durationMs,
       };
       
@@ -201,19 +208,23 @@ export default function ChatPage() {
     }
   };
 
-  const handleCreateNewSession = () => {
+  const handleCreateNewSession = useCallback((switchToNew = true) => {
     const newSessionId = generateId();
     const newSession: ChatSession = {
       id: newSessionId,
       name: `Chat ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
       createdAt: Date.now(),
       messages: [],
-      knowledgeBaseManual: [],
-      knowledgeBaseFiles: [],
+      knowledgeBaseManual: [], // Initialize as empty arrays
+      knowledgeBaseFiles: [],  // Initialize as empty arrays
     };
     setSessions(prevSessions => [newSession, ...prevSessions]);
-    setCurrentSessionId(newSessionId);
-  };
+    if (switchToNew) {
+      setCurrentSessionId(newSessionId);
+    }
+    return newSessionId;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Dependencies carefully managed
 
   const handleSelectSession = (sessionId: string) => {
     setCurrentSessionId(sessionId);
@@ -225,7 +236,7 @@ export default function ChatPage() {
       const response = await fetch(`${API_BASE_URL}/sessions/${sessionId}`, {
         method: 'DELETE',
       });
-      if (!response.ok) {
+      if (!response.ok && response.status !== 404) { // Allow 404 if session never made it to server
         const errorText = await response.text();
         throw new Error(`Failed to delete session on server: ${errorText}`);
       }
@@ -233,11 +244,18 @@ export default function ChatPage() {
       setSessions(prevSessions => {
         const remainingSessions = prevSessions.filter(s => s.id !== sessionId);
         if (currentSessionId === sessionId) {
-          setCurrentSessionId(remainingSessions.length > 0 ? remainingSessions[0].id : null);
+          if (remainingSessions.length > 0) {
+            setCurrentSessionId(remainingSessions[0].id);
+          } else {
+            // If no sessions left, create a new one
+            const newFallbackId = handleCreateNewSession(true);
+            setCurrentSessionId(newFallbackId); // Set this new one as current
+            return [sessions.find(s => s.id === newFallbackId)!]; // Return only the new session
+          }
         }
         return remainingSessions;
       });
-      toast({ title: 'Session Deleted', description: `Session ${sessionId.substring(0,6)}... was deleted.` });
+      toast({ title: 'Session Deleted', description: `Session was deleted.` });
 
     } catch (error) {
         console.error('Error deleting session:', error);
@@ -261,7 +279,7 @@ export default function ChatPage() {
       const response = await fetch(`${API_BASE_URL}/knowledge-base/add`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: currentSession.id, entry: entry }),
+        body: JSON.stringify({ session_id: currentSession.id, entry: entry }), // FastAPI expects session_id
       });
       if (!response.ok) {
         const errorText = await response.text();
@@ -295,12 +313,12 @@ export default function ChatPage() {
     setIsLoading(true);
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('session_id', currentSession.id);
+    formData.append('session_id', currentSession.id); // FastAPI expects session_id
 
     try {
       const response = await fetch(`${API_BASE_URL}/knowledge-base/upload`, {
         method: 'POST',
-        body: formData,
+        body: formData, // FormData sets Content-Type automatically
       });
       if (!response.ok) {
         const errorText = await response.text();
@@ -310,9 +328,9 @@ export default function ChatPage() {
 
       if (result.success) {
         const newKbFile: KnowledgeBaseFile = {
-          name: result.filename || file.name,
+          name: result.filename || file.name, // Use filename from server if provided
           type: file.type.includes('pdf') ? 'pdf' : 'txt',
-          content: `Uploaded: ${file.name}`, // Placeholder content, actual content handled by backend
+          content: `Uploaded: ${result.filename || file.name}`, 
         };
         setSessions(prevSessions => prevSessions.map(s =>
             s.id === currentSession.id
@@ -331,7 +349,7 @@ export default function ChatPage() {
     }
   };
   
-  if (!isMounted) {
+  if (!isMounted || !currentSessionId) { // Also ensure currentSessionId is available
      return (
         <div className="flex h-screen w-full items-center justify-center bg-background">
           <Icons.Logo className="h-16 w-16 animate-pulse text-primary" />
@@ -343,7 +361,7 @@ export default function ChatPage() {
     <ChatLayout
       sessions={sessions}
       currentSession={currentSession}
-      onCreateNewSession={handleCreateNewSession}
+      onCreateNewSession={() => handleCreateNewSession(true)}
       onSelectSession={handleSelectSession}
       onDeleteSession={handleDeleteSession}
       onAddManualKbEntry={handleAddManualKbEntry}
@@ -358,5 +376,3 @@ export default function ChatPage() {
     </ChatLayout>
   );
 }
-
-    

@@ -1,3 +1,4 @@
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'bot';
@@ -6,6 +7,8 @@ export interface ChatMessage {
   knowledgeBaseUsed?: string | null;
   fromCache?: boolean;
   durationMs?: number;
+  cosineDistance?: number;
+  promptSentToModel?: string;
 }
 
 export interface KnowledgeBaseFile {
@@ -22,3 +25,4 @@ export interface ChatSession {
   knowledgeBaseManual: string[];
   knowledgeBaseFiles: KnowledgeBaseFile[];
 }
+
