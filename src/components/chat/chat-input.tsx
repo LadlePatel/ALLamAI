@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -45,7 +46,7 @@ export function ChatInput({ onSendMessage, isLoading }: ChatInputProps) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="sticky bottom-0 z-10 flex items-end gap-2 border-t bg-background p-3 md:p-4 shadow- ऊपर"
+      className="sticky bottom-0 z-10 flex items-end gap-2 border-t bg-background p-3 md:p-4 shadow-md"
     >
       <Textarea
         ref={textareaRef}

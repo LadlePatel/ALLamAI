@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,33 +9,33 @@ body {
 
 @layer base {
   :root {
-    --background: 220 67% 97%; /* Light: HSL(220, 10%, 95%) / Hex #F2F8FF */
-    --foreground: 218 33% 15%; /* Dark: Text color derived from dark bg */
+    --background: 220 10% 95%; /* PRD Light: HSL(220, 10%, 95%) */
+    --foreground: 218 33% 15%; /* Main text color for light theme */
     
-    --card: 220 60% 99%;
-    --card-foreground: 218 33% 15%;
+    --card: 0 0% 100%; /* White cards for light theme */
+    --card-foreground: 218 33% 15%; /* Main text color for cards */
     
-    --popover: 220 60% 99%;
-    --popover-foreground: 218 33% 15%;
+    --popover: 0 0% 100%; /* White popovers for light theme */
+    --popover-foreground: 218 33% 15%; /* Main text color for popovers */
     
-    --primary: 220 73% 59%; /* HSL(220, 60%, 50%) / Hex #4A90E2 */
+    --primary: 220 60% 50%; /* PRD Primary: HSL(220, 60%, 50%) */
     --primary-foreground: 0 0% 100%; /* White text on primary */
     
-    --secondary: 220 50% 93%;
-    --secondary-foreground: 218 33% 15%;
+    --secondary: 220 10% 90%; /* Slightly darker than background for secondary elements */
+    --secondary-foreground: 218 33% 15%; /* Main text for secondary elements */
     
-    --muted: 220 50% 93%;
-    --muted-foreground: 220 20% 45%;
+    --muted: 220 10% 90%; /* Same as secondary for muted elements */
+    --muted-foreground: 220 20% 45%; /* Lighter text for muted content */
     
-    --accent: 280 47% 58%; /* HSL(280, 40%, 60%) / Hex #9F5BCD */
+    --accent: 280 40% 60%; /* PRD Accent: HSL(280, 40%, 60%) */
     --accent-foreground: 0 0% 100%; /* White text on accent */
     
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     
-    --border: 220 30% 88%;
-    --input: 220 40% 90%;
-    --ring: 220 73% 59%;
+    --border: 220 10% 88%; /* Border color for light theme */
+    --input: 220 10% 92%; /* Input background for light theme */
+    --ring: 220 60% 50%; /* Ring color matching primary */
     
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
@@ -45,44 +46,44 @@ body {
     --radius: 0.5rem;
 
     /* Sidebar specific colors for light theme */
-    --sidebar-background: 220 45% 94%; /* A slightly darker/distincter shade of background */
-    --sidebar-foreground: 218 33% 25%; /* Darker text for better readability on sidebar bg */
-    --sidebar-primary: 220 73% 59%; /* Same as main primary */
-    --sidebar-primary-foreground: 0 0% 100%; /* White text on primary */
-    --sidebar-accent: 280 47% 58%; /* Same as main accent */
-    --sidebar-accent-foreground: 0 0% 100%; /* White text on accent */
-    --sidebar-border: 220 30% 85%; /* Sidebar border */
-    --sidebar-ring: 220 73% 59%; /* Same as main ring */
+    --sidebar-background: 220 10% 90%; /* Distinct background for light sidebar */
+    --sidebar-foreground: 218 33% 15%; /* Main text for light sidebar */
+    --sidebar-primary: 220 60% 50%; /* Primary for sidebar */
+    --sidebar-primary-foreground: 0 0% 100%; /* Text on primary for sidebar */
+    --sidebar-accent: 280 40% 60%; /* Accent for sidebar */
+    --sidebar-accent-foreground: 0 0% 100%; /* Text on accent for sidebar */
+    --sidebar-border: 220 10% 85%; /* Border for light sidebar */
+    --sidebar-ring: 220 60% 50%; /* Ring for sidebar */
   }
  
   .dark {
-    --background: 218 33% 15%; /* Dark: HSL(220, 20%, 10%) / Hex #1A2633 */
-    --foreground: 220 67% 97%; /* Light: Text color derived from light bg */
+    --background: 220 20% 10%; /* PRD Dark: HSL(220, 20%, 10%) */
+    --foreground: 220 10% 95%; /* Main text color for dark theme */
 
-    --card: 218 30% 20%;
-    --card-foreground: 220 67% 97%;
+    --card: 220 20% 15%; /* Slightly lighter than background for dark cards */
+    --card-foreground: 220 10% 95%; /* Main text for dark cards */
 
-    --popover: 218 30% 20%;
-    --popover-foreground: 220 67% 97%;
+    --popover: 220 20% 15%; /* Popover background for dark theme */
+    --popover-foreground: 220 10% 95%; /* Main text for dark popovers */
 
-    --primary: 220 73% 59%; /* HSL(220, 60%, 50%) / Hex #4A90E2 */
+    --primary: 220 60% 50%; /* PRD Primary: HSL(220, 60%, 50%) */
     --primary-foreground: 0 0% 100%; /* White text on primary */
 
-    --secondary: 218 30% 25%;
-    --secondary-foreground: 220 67% 97%;
+    --secondary: 220 20% 20%; /* Slightly lighter than background for dark secondary elements */
+    --secondary-foreground: 220 10% 95%; /* Main text for dark secondary elements */
 
-    --muted: 218 30% 25%;
-    --muted-foreground: 220 30% 70%;
+    --muted: 220 20% 20%; /* Same as secondary for dark muted elements */
+    --muted-foreground: 220 20% 70%; /* Lighter text for dark muted content */
 
-    --accent: 280 47% 58%; /* HSL(280, 40%, 60%) / Hex #9F5BCD */
+    --accent: 280 40% 60%; /* PRD Accent: HSL(280, 40%, 60%) */
     --accent-foreground: 0 0% 100%; /* White text on accent */
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 218 30% 28%;
-    --input: 218 30% 28%;
-    --ring: 220 73% 59%;
+    --border: 220 20% 25%; /* Border for dark theme */
+    --input: 220 20% 25%; /* Input background for dark theme */
+    --ring: 220 60% 50%; /* Ring color matching primary */
     
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
@@ -91,14 +92,14 @@ body {
     --chart-5: 340 75% 55%;
 
     /* Sidebar specific colors for dark theme */
-    --sidebar-background: 218 33% 12%; /* A slightly distincter shade of dark background */
-    --sidebar-foreground: 220 50% 85%; /* Lighter text for readability on dark sidebar bg */
-    --sidebar-primary: 220 73% 59%; /* Same as main primary */
-    --sidebar-primary-foreground: 0 0% 100%; /* White text on primary */
-    --sidebar-accent: 280 47% 58%; /* Same as main accent */
-    --sidebar-accent-foreground: 0 0% 100%; /* White text on accent */
-    --sidebar-border: 218 30% 22%; /* Sidebar border for dark theme */
-    --sidebar-ring: 220 73% 59%; /* Same as main ring */
+    --sidebar-background: 220 20% 13%; /* Distinct background for dark sidebar */
+    --sidebar-foreground: 220 10% 90%; /* Main text for dark sidebar */
+    --sidebar-primary: 220 60% 50%; /* Primary for dark sidebar */
+    --sidebar-primary-foreground: 0 0% 100%; /* Text on primary for dark sidebar */
+    --sidebar-accent: 280 40% 60%; /* Accent for dark sidebar */
+    --sidebar-accent-foreground: 0 0% 100%; /* Text on accent for dark sidebar */
+    --sidebar-border: 220 20% 18%; /* Border for dark sidebar */
+    --sidebar-ring: 220 60% 50%; /* Ring for dark sidebar */
   }
 }
  
