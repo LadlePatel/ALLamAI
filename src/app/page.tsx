@@ -4,10 +4,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ChatLayout } from '@/components/chat/chat-layout';
 import { ChatArea } from '@/components/chat/chat-area';
-import type { ChatMessage, ChatSession, KnowledgeBaseFile } from '@/types';
-// import { chatbotConversation } from '@/ai/flows/chatbot-conversation'; // AI Call Removed
+import type { ChatMessage, ChatSession } from '@/types';
+import { chatbotConversation } from '@/ai/flows/chatbot-conversation';
 import { useToast } from '@/hooks/use-toast';
-import { Icons } from '@/components/icons'; // Added for loading state
+import { Icons } from '@/components/icons';
 
 // For generating unique IDs
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -81,33 +81,50 @@ export default function ChatPage() {
     const updatedMessages = [...currentSession.messages, userMessage];
     updateSession({ ...currentSession, messages: updatedMessages });
     setIsLoading(true);
+    const startTime = Date.now();
 
     try {
-      // AI call removed for UI focus
-      // Simulating a delay and response
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
-      const simulatedResponse = `You said: "${userInput}". (AI response is currently disabled for UI development)`;
+      const currentKbString = [
+        ...(currentSession.knowledgeBaseManual || []).map(entry => `Manual Entry: ${entry}`),
+        ...(currentSession.knowledgeBaseFiles || []).map(f => `File: ${f.name}\nContent:\n${f.content}`)
+      ].join('\n\n---\n\n');
+
+      const conversationHistoryForAI = currentSession.messages
+        .slice(-10) // Send last 10 messages for history
+        .map(msg => ({ role: msg.role, content: msg.content }));
+
+      const aiResponse = await chatbotConversation({
+        userInput,
+        conversationHistory: conversationHistoryForAI,
+        knowledgeBase: currentKbString,
+      });
       
+      const endTime = Date.now();
+      const durationMs = endTime - startTime;
+
       const botMessage: ChatMessage = {
         id: generateId(),
         role: 'bot',
-        content: simulatedResponse,
+        content: aiResponse.response,
         timestamp: Date.now(),
+        knowledgeBaseUsed: aiResponse.knowledgeBaseUsed,
+        fromCache: aiResponse.fromCache,
+        durationMs: durationMs,
       };
       
       updateSession({ ...currentSession, messages: [...updatedMessages, botMessage] });
 
     } catch (error) {
-      console.error('Error simulating AI response:', error);
+      console.error('Error getting AI response:', error);
       toast({
         title: 'Error',
-        description: 'Failed to get simulated response.',
+        description: 'Failed to get AI response.',
         variant: 'destructive',
       });
        const errorMessage: ChatMessage = {
         id: generateId(),
         role: 'bot',
-        content: "Sorry, I couldn't process your request (simulation error). Please try again.",
+        content: "Sorry, I couldn't process your request. Please try again.",
         timestamp: Date.now(),
       };
       updateSession({ ...currentSession, messages: [...updatedMessages, errorMessage] });

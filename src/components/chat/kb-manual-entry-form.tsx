@@ -8,7 +8,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import type { ChatSession } from '@/types';
-// import { addKnowledgeBaseManualEntry } from '@/ai/flows/add-knowledge-base-manual-entry'; // AI Call Removed
 import { FilePlus2, Loader2 } from 'lucide-react';
 
 interface KbManualEntryFormProps {
@@ -28,12 +27,13 @@ export function KbManualEntryForm({ currentSession, onKnowledgeBaseUpdate, disab
 
     setIsLoading(true);
     try {
-      // AI call removed for UI focus - Simulating processing
-      await new Promise(resolve => setTimeout(resolve, 300)); // Simulate processing delay
-      const simulatedResult = { success: true, message: `Entry "${entry.substring(0, 20)}..." processed locally (AI disabled).` };
+      // Simulating processing. A real implementation would send this to a backend
+      // to be vectorized and stored in a vector database.
+      await new Promise(resolve => setTimeout(resolve, 300)); 
+      const simulatedResult = { success: true, message: `Entry processed locally (simulated for UI). Real KB would use vector embeddings.` };
       
       if (simulatedResult.success) {
-        const updatedKbManual = [...(currentSession.knowledgeBaseManual || []), entry];
+        const updatedKbManual = [...(currentSession.knowledgeBaseManual || []), entry.trim()];
         const updatedSession: ChatSession = { ...currentSession, knowledgeBaseManual: updatedKbManual };
         onKnowledgeBaseUpdate(updatedSession);
         setEntry('');
@@ -91,7 +91,7 @@ export function KbManualEntryForm({ currentSession, onKnowledgeBaseUpdate, disab
             size="sm"
           >
             {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-            {isLoading ? 'Adding...' : 'Add Entry'}
+            {isLoading ? 'Adding...' : 'Add Entry to KB'}
           </Button>
         </form>
       </CardContent>

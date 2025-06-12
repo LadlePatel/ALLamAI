@@ -8,7 +8,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import type { ChatSession, KnowledgeBaseFile } from '@/types';
-// import { addKnowledgeBaseFileUpload } from '@/ai/flows/add-knowledge-base-file-upload'; // AI Call Removed
 import { FileUp, Loader2 } from 'lucide-react';
 
 interface KbFileUploadFormProps {
@@ -38,16 +37,17 @@ export function KbFileUploadForm({ currentSession, onKnowledgeBaseUpdate, disabl
     const reader = new FileReader();
     reader.onload = async (event) => {
       if (event.target?.result && typeof event.target.result === 'string') {
-        // const fileDataUri = event.target.result; // Not needed for simulation
         try {
-          // AI call removed for UI focus - Simulating processing
-          await new Promise(resolve => setTimeout(resolve, 500)); // Simulate processing delay
-          const simulatedResult = { success: true, message: `File "${file.name}" processed locally (AI disabled).` };
+          // Simulating processing. A real implementation would send this to a backend
+          // to be processed, chunked, vectorized, and stored in a vector database.
+          await new Promise(resolve => setTimeout(resolve, 500)); 
+          const simulatedResult = { success: true, message: `File "${file.name}" processed locally (simulated for UI). Real KB would use vector embeddings.` };
 
           if (simulatedResult.success) {
             const newKbFile: KnowledgeBaseFile = {
               name: file.name,
-              content: file.type === 'text/plain' ? await file.text() : `Simulated content for: ${file.name}`, 
+              // Storing full content for simulation; real KB might store references or chunked data
+              content: file.type === 'text/plain' ? await file.text() : `Simulated extracted content for PDF: ${file.name}`, 
               type: file.type === 'application/pdf' ? 'pdf' : 'txt',
             };
             const updatedKbFiles = [...(currentSession.knowledgeBaseFiles || []), newKbFile];
@@ -96,7 +96,14 @@ export function KbFileUploadForm({ currentSession, onKnowledgeBaseUpdate, disabl
         });
         setIsLoading(false);
     };
-    reader.readAsDataURL(file); // Still read to simulate some processing
+    // Read file content for simulation (e.g., for text files)
+    if (file.type === 'text/plain') {
+        reader.readAsText(file);
+    } else {
+        // For PDFs or other types, we'd typically send the file to a backend.
+        // Here, we just read as data URL to complete the FileReader process.
+        reader.readAsDataURL(file); 
+    }
   };
 
   return (
@@ -130,7 +137,7 @@ export function KbFileUploadForm({ currentSession, onKnowledgeBaseUpdate, disabl
             size="sm"
           >
             {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-            {isLoading ? 'Uploading...' : 'Upload File'}
+            {isLoading ? 'Processing...' : 'Add File to KB'}
           </Button>
         </form>
       </CardContent>
