@@ -67,5 +67,3 @@ export function ChatWelcome() {
     </div>
   );
 }
-
-```
