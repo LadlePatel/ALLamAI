@@ -12,8 +12,8 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
-const SESSIONS_STORAGE_KEY = 'allamai-sessions';
-const CURRENT_SESSION_ID_STORAGE_KEY = 'allamai-current-session-id';
+// const SESSIONS_STORAGE_KEY = 'allamai-sessions';
+// const CURRENT_SESSION_ID_STORAGE_KEY = 'allamai-current-session-id';
 
 export default function ChatPage() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -24,29 +24,29 @@ export default function ChatPage() {
 
   const currentSession = sessions.find(s => s.id === currentSessionId);
 
-  // Load session list from localStorage on mount
+  // Load session list from localStorage on mount (Temporarily Disabled)
   useEffect(() => {
     setIsMounted(true);
-    try {
-      const storedSessions = localStorage.getItem(SESSIONS_STORAGE_KEY);
-      if (storedSessions) {
-        const parsedSessions = JSON.parse(storedSessions) as ChatSession[];
-        // Ensure messages are empty initially, will be fetched if session is active
-        parsedSessions.forEach(s => s.messages = []); 
-        setSessions(parsedSessions);
+    // try {
+    //   const storedSessions = localStorage.getItem(SESSIONS_STORAGE_KEY);
+    //   if (storedSessions) {
+    //     const parsedSessions = JSON.parse(storedSessions) as ChatSession[];
+    //     // Ensure messages are empty initially, will be fetched if session is active
+    //     parsedSessions.forEach(s => s.messages = []); 
+    //     setSessions(parsedSessions);
 
-        const storedCurrentSessionId = localStorage.getItem(CURRENT_SESSION_ID_STORAGE_KEY);
-        if (storedCurrentSessionId && parsedSessions.find(s => s.id === storedCurrentSessionId)) {
-          setCurrentSessionId(storedCurrentSessionId);
-        } else if (parsedSessions.length > 0) {
-          setCurrentSessionId(parsedSessions[0].id);
-        }
-      }
-    } catch (error) {
-      console.error("Failed to load session list from localStorage", error);
-      toast({ title: "Error", description: "Could not load session data.", variant: "destructive" });
-    }
-  }, [toast]);
+    //     const storedCurrentSessionId = localStorage.getItem(CURRENT_SESSION_ID_STORAGE_KEY);
+    //     if (storedCurrentSessionId && parsedSessions.find(s => s.id === storedCurrentSessionId)) {
+    //       setCurrentSessionId(storedCurrentSessionId);
+    //     } else if (parsedSessions.length > 0) {
+    //       setCurrentSessionId(parsedSessions[0].id);
+    //     }
+    //   }
+    // } catch (error) {
+    //   console.error("Failed to load session list from localStorage", error);
+    //   toast({ title: "Error", description: "Could not load session data.", variant: "destructive" });
+    // }
+  }, [toast]); // Removed isMounted from dependencies as it's set inside and effect doesn't re-run on its change
 
   // Fetch messages for the current session when it changes or on mount
   useEffect(() => {
@@ -61,11 +61,7 @@ export default function ChatPage() {
         }
         const messagesData = await response.json();
         
-        // Assuming messagesData is an array of ChatMessage
-        // Need to ensure the structure matches, or adapt it.
-        // For now, let's assume it's { messages: ChatMessage[] } or ChatMessage[]
         const fetchedMessages = messagesData.messages || messagesData; 
-
 
         setSessions(prevSessions =>
           prevSessions.map(s =>
@@ -79,7 +75,6 @@ export default function ChatPage() {
           description: `Failed to fetch messages for session. ${error instanceof Error ? error.message : ''}`,
           variant: 'destructive',
         });
-        // Potentially clear messages for this session if fetch fails
         setSessions(prevSessions =>
           prevSessions.map(s =>
             s.id === currentSessionId ? { ...s, messages: [] } : s
@@ -94,22 +89,22 @@ export default function ChatPage() {
   }, [currentSessionId, isMounted, toast]);
 
 
-  // Save session list to localStorage when it changes
+  // Save session list to localStorage when it changes (Temporarily Disabled)
   useEffect(() => {
     if (!isMounted) return;
-    try {
-      // Store sessions without their messages to keep localStorage light
-      const sessionsToStore = sessions.map(({ messages, ...rest }) => rest);
-      localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(sessionsToStore));
+    // try {
+    //   // Store sessions without their messages to keep localStorage light
+    //   const sessionsToStore = sessions.map(({ messages, ...rest }) => rest);
+    //   localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(sessionsToStore));
       
-      if (currentSessionId) {
-        localStorage.setItem(CURRENT_SESSION_ID_STORAGE_KEY, currentSessionId);
-      } else {
-        localStorage.removeItem(CURRENT_SESSION_ID_STORAGE_KEY);
-      }
-    } catch (error) {
-      console.error("Failed to save session list to localStorage", error);
-    }
+    //   if (currentSessionId) {
+    //     localStorage.setItem(CURRENT_SESSION_ID_STORAGE_KEY, currentSessionId);
+    //   } else {
+    //     localStorage.removeItem(CURRENT_SESSION_ID_STORAGE_KEY);
+    //   }
+    // } catch (error) {
+    //   console.error("Failed to save session list to localStorage", error);
+    // }
   }, [sessions, currentSessionId, isMounted]);
 
 
@@ -146,7 +141,6 @@ export default function ChatPage() {
       const apiRequestBody = {
         session_id: currentSession.id,
         user_input: userInput,
-        // Conversation history is managed server-side via session_id
       };
 
       const response = await fetch(`${API_BASE_URL}/chat`, {
@@ -167,7 +161,7 @@ export default function ChatPage() {
       const botMessage: ChatMessage = {
         id: generateId(),
         role: 'bot',
-        content: aiResponseData.response, // Assuming structure { response: string, ... }
+        content: aiResponseData.response, 
         timestamp: Date.now(),
         knowledgeBaseUsed: aiResponseData.knowledge_base_used,
         fromCache: aiResponseData.from_cache,
@@ -201,18 +195,16 @@ export default function ChatPage() {
       id: newSessionId,
       name: `Chat ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
       createdAt: Date.now(),
-      messages: [], // Messages will be fetched or start empty
-      knowledgeBaseManual: [], // Client-side tracking for display
-      knowledgeBaseFiles: [],  // Client-side tracking for display
+      messages: [],
+      knowledgeBaseManual: [],
+      knowledgeBaseFiles: [],
     };
     setSessions(prevSessions => [newSession, ...prevSessions]);
     setCurrentSessionId(newSessionId);
-    // No API call needed here to "create" session if backend creates on first use
   };
 
   const handleSelectSession = (sessionId: string) => {
     setCurrentSessionId(sessionId);
-    // Messages for this session will be fetched by the useEffect hook
   };
 
   const handleDeleteSession = async (sessionId: string) => {
@@ -222,12 +214,10 @@ export default function ChatPage() {
         method: 'DELETE',
       });
       if (!response.ok) {
-        // If API call fails, maybe don't delete from client? Or notify user.
         const errorText = await response.text();
         throw new Error(`Failed to delete session on server: ${errorText}`);
       }
       
-      // Proceed with client-side deletion if server confirmed
       setSessions(prevSessions => {
         const remainingSessions = prevSessions.filter(s => s.id !== sessionId);
         if (currentSessionId === sessionId) {
@@ -265,7 +255,7 @@ export default function ChatPage() {
         const errorText = await response.text();
         throw new Error(`Failed to add KB entry: ${errorText}`);
       }
-      const result = await response.json(); // Expects { success: boolean, message: string }
+      const result = await response.json(); 
       
       if (result.success) {
         setSessions(prevSessions => prevSessions.map(s => 
@@ -293,24 +283,24 @@ export default function ChatPage() {
     setIsLoading(true);
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('session_id', currentSession.id); // Assuming backend needs session_id for context
+    formData.append('session_id', currentSession.id);
 
     try {
       const response = await fetch(`${API_BASE_URL}/knowledge-base/upload`, {
         method: 'POST',
-        body: formData, // Browser will set Content-Type for FormData
+        body: formData,
       });
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Failed to upload KB file: ${errorText}`);
       }
-      const result = await response.json(); // Expects { success: boolean, message: string, filename?: string }
+      const result = await response.json();
 
       if (result.success) {
         const newKbFile: KnowledgeBaseFile = {
-          name: result.filename || file.name, // Use filename from server if provided
+          name: result.filename || file.name,
           type: file.type.includes('pdf') ? 'pdf' : 'txt',
-          content: `Uploaded: ${file.name}`, // Client-side content is just for display record
+          content: `Uploaded: ${file.name}`,
         };
         setSessions(prevSessions => prevSessions.map(s =>
             s.id === currentSession.id
@@ -344,11 +334,9 @@ export default function ChatPage() {
       onCreateNewSession={handleCreateNewSession}
       onSelectSession={handleSelectSession}
       onDeleteSession={handleDeleteSession}
-      // Pass new handlers to ChatSidebarContent (which passes to KB forms)
       onAddManualKbEntry={handleAddManualKbEntry}
       onAddKbFile={handleAddKbFile}
-      // Keep onKnowledgeBaseUpdate for now if ChatLayout expects it, but it's being replaced
-      onKnowledgeBaseUpdate={() => {}} // No-op, new handlers used
+      onKnowledgeBaseUpdate={() => {}} 
     >
       <ChatArea
         messages={currentSession?.messages || []}
@@ -359,5 +347,3 @@ export default function ChatPage() {
     </ChatLayout>
   );
 }
-
-    
