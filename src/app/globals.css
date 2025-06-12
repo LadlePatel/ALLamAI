@@ -11,19 +11,19 @@ body {
   :root {
     /* Light Theme from image */
     --background: 210 100% 97%; /* #F1F8FF */
-    --foreground: 0 0% 15%; /* #252525 */
+    --foreground: 240 10% 15%; /* #252525 (adjusted for HSL) */
     
     --card: 0 0% 98%; /* #FAFAFA (Background color 2) */
-    --card-foreground: 0 0% 15%; /* #252525 */
+    --card-foreground: 240 10% 15%; /* #252525 */
     
     --popover: 0 0% 98%; /* #FAFAFA */
-    --popover-foreground: 0 0% 15%; /* #252525 */
+    --popover-foreground: 240 10% 15%; /* #252525 */
     
     --primary: 167 77% 36%; /* #16A180 */
     --primary-foreground: 0 0% 100%; /* White text on primary */
     
     --secondary: 0 0% 98%; /* #FAFAFA (Background color 2) */
-    --secondary-foreground: 0 0% 15%; /* #252525 */
+    --secondary-foreground: 240 10% 15%; /* #252525 */
     
     --muted: 0 0% 95%; /* Slightly darker than #FAFAFA */
     --muted-foreground: 0 0% 40%;
@@ -44,15 +44,15 @@ body {
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     
-    --radius: 0.5rem;
+    --radius: 0.75rem; /* Increased for more roundness */
 
     /* Sidebar specific colors for light theme */
     --sidebar-background: 0 0% 98%; /* #FAFAFA (Background color 2) */
-    --sidebar-foreground: 0 0% 15%; /* #252525 */
+    --sidebar-foreground: 240 10% 15%; /* #252525 */
     --sidebar-primary: 167 77% 36%; /* #16A180 */
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 0 0% 95%; /* Slightly darker than sidebar-background */
-    --sidebar-accent-foreground: 0 0% 15%;
+    --sidebar-accent-foreground: 240 10% 15%;
     --sidebar-border: 0 0% 90%;
     --sidebar-ring: 167 77% 36%;
   }
@@ -137,3 +137,4 @@ body {
   scrollbar-width: thin;
   scrollbar-color: hsl(var(--primary) / 0.5) hsl(var(--muted) / 0.5);
 }
+
