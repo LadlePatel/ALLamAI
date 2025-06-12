@@ -9,7 +9,7 @@ import type { ChatMessage, ChatSession, KnowledgeBaseFile } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Icons } from '@/components/icons';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = 'http://34.67.71.118:8000';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -32,9 +32,11 @@ export default function ChatPage() {
       const storedSessions = localStorage.getItem(SESSIONS_STORAGE_KEY);
       if (storedSessions) {
         const parsedSessions = JSON.parse(storedSessions) as ChatSession[];
-        // Ensure messages array is initialized client-side even if not stored,
-        // as it will be fetched or populated.
-        parsedSessions.forEach(s => s.messages = s.messages || []);
+        parsedSessions.forEach(s => {
+          s.messages = s.messages || [];
+          s.knowledgeBaseManual = s.knowledgeBaseManual || [];
+          s.knowledgeBaseFiles = s.knowledgeBaseFiles || [];
+        });
         setSessions(parsedSessions);
 
         const storedCurrentSessionId = localStorage.getItem(CURRENT_SESSION_ID_STORAGE_KEY);
@@ -165,12 +167,12 @@ export default function ChatPage() {
         id: generateId(),
         role: 'bot',
         content: aiResponseData.response, 
-        timestamp: Date.now(),
+        timestamp: Date.now(), // Keep timestamp for potential internal use, ChatMessage component controls display
+        durationMs: durationMs,
         knowledgeBaseUsed: aiResponseData.knowledge_base_used,
         fromCache: aiResponseData.from_cache,
         cosineDistance: aiResponseData.cosine_distance,
         promptSentToModel: aiResponseData.prompt_sent_to_model,
-        durationMs: durationMs,
       };
       
       addMessageToSession(currentSession.id, botMessage);
@@ -232,11 +234,8 @@ export default function ChatPage() {
           if (remainingSessions.length > 0) {
             setCurrentSessionId(remainingSessions[0].id);
           } else {
-            const newFallbackId = handleCreateNewSession(true);
-            // The new session is already added to sessions array by handleCreateNewSession
-            // and currentSessionId is updated. So we just return remainingSessions (which will be empty then new one added)
-            // Actually, handleCreateNewSession already modifies sessions state.
-            return sessions.filter(s => s.id !== sessionId); // Let handleCreateNewSession manage adding the new one if needed
+            handleCreateNewSession(true); // This will set the currentSessionId
+            return remainingSessions; // Return empty, new session added by handleCreateNewSession
           }
         }
         return remainingSessions;
@@ -247,17 +246,19 @@ export default function ChatPage() {
         console.error('Error deleting session:', error);
         let detailMessage = "Could not delete session.";
         if (axios.isAxiosError(error) && error.response && error.response.status === 404) {
-           // If server says 404, still remove from client
-           setSessions(prevSessions => prevSessions.filter(s => s.id !== sessionId));
-           if (currentSessionId === sessionId) {
-             if (sessions.filter(s => s.id !== sessionId).length > 0) {
-               setCurrentSessionId(sessions.filter(s => s.id !== sessionId)[0].id);
-             } else {
-               handleCreateNewSession(true);
+           setSessions(prevSessions => {
+             const remainingSessions = prevSessions.filter(s => s.id !== sessionId);
+             if (currentSessionId === sessionId) {
+               if (remainingSessions.length > 0) {
+                 setCurrentSessionId(remainingSessions[0].id);
+               } else {
+                 handleCreateNewSession(true);
+               }
              }
-           }
+             return remainingSessions;
+           });
            toast({ title: 'Session Deleted', description: `Session removed locally (not found on server).` });
-           return; // Skip generic error toast
+           return;
         } else if (axios.isAxiosError(error) && error.response) {
           detailMessage += ` Server: ${error.response.status} - ${JSON.stringify(error.response.data?.detail || error.response.data || error.message)}`;
         } else if (error instanceof Error) {
