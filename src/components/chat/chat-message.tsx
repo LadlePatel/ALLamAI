@@ -2,12 +2,11 @@
 "use client";
 
 import React from 'react';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { UserCircle2, Bot, FileText, Zap, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ChatMessage as Message } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface ChatMessageProps {
   message: Message;
@@ -15,6 +14,8 @@ interface ChatMessageProps {
 
 export function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === 'user';
+
+  const userAvatarUrl = "https://placehold.co/40x40.png"; 
 
   return (
     <div
@@ -24,7 +25,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
       )}
     >
       {!isUser && (
-        <Avatar className="h-8 w-8 border-none"> {/* Removed border */}
+        <Avatar className="h-8 w-8 border-none">
           <AvatarFallback className="bg-primary text-primary-foreground">
             <Bot className="h-5 w-5" />
           </AvatarFallback>
@@ -32,17 +33,17 @@ export function ChatMessage({ message }: ChatMessageProps) {
       )}
       <div
         className={cn(
-          'max-w-[70%] rounded-lg', // Removed shadow-sm
+          'max-w-[70%] rounded-lg', 
           isUser
-            ? 'bg-primary text-primary-foreground rounded-br-none'
-            : 'bg-card text-card-foreground rounded-bl-none' // Removed border and border-border
+            ? 'bg-primary text-primary-foreground rounded-br-none' 
+            : 'bg-card text-card-foreground rounded-bl-none' 
         )}
       >
         <div className={cn('px-3.5 py-2.5')}>
           <p className="text-sm whitespace-pre-wrap font-body">{message.content}</p>
         </div>
         {!isUser && (message.knowledgeBaseUsed || message.fromCache !== undefined || message.durationMs !== undefined) && (
-          <div className="px-3.5 pb-2.5 pt-1 border-t border-border/20 space-y-1.5"> {/* Made border lighter */}
+          <div className="px-3.5 pb-2.5 pt-1 border-t border-border/20 space-y-1.5">
             {message.fromCache && (
               <Badge variant="secondary" className="text-xs py-0.5 px-1.5">
                 <Zap className="h-3 w-3 mr-1" /> From Cache (Simulated)
@@ -72,7 +73,8 @@ export function ChatMessage({ message }: ChatMessageProps) {
         </p>
       </div>
       {isUser && (
-        <Avatar className="h-8 w-8 border-none"> {/* Removed border */}
+        <Avatar className="h-8 w-8 border-none">
+          <AvatarImage src={userAvatarUrl} alt="User" data-ai-hint="profile person" />
           <AvatarFallback className="bg-secondary text-secondary-foreground">
             <UserCircle2 className="h-5 w-5" />
           </AvatarFallback>

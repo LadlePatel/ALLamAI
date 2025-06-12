@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -22,8 +23,10 @@ export function SessionListItem({ session, isSelected, onSelect, onDelete }: Ses
   return (
     <div
       className={cn(
-        "group flex items-center justify-between p-2 rounded-md cursor-pointer transition-colors",
-        isSelected ? "bg-primary/10 text-primary" : "hover:bg-muted/50 text-foreground"
+        "group flex items-center justify-between p-2 rounded-md cursor-pointer transition-colors text-sm", // Ensure text-sm for consistency
+        isSelected 
+          ? "bg-primary/20 text-primary-foreground dark:bg-sidebar-accent dark:text-sidebar-accent-foreground" // Adjusted selected style
+          : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
       )}
       onClick={() => onSelect(session.id)}
       role="button"
@@ -32,15 +35,16 @@ export function SessionListItem({ session, isSelected, onSelect, onDelete }: Ses
       aria-label={`Select session: ${session.name}`}
     >
       <div className="flex items-center gap-2 overflow-hidden">
-        <MessageSquare className={cn("h-4 w-4 shrink-0", isSelected ? "text-primary" : "text-muted-foreground")} />
-        <span className="truncate text-sm font-medium">{session.name}</span>
+        {/* Icon can be conditional or always MessageSquare, ChatGPT image shows a generic chat icon */}
+        <MessageSquare className={cn("h-4 w-4 shrink-0", isSelected ? "text-primary-foreground dark:text-sidebar-accent-foreground" : "text-sidebar-foreground/60")} />
+        <span className="truncate font-medium">{session.name}</span>
       </div>
       <Button
         variant="ghost"
         size="icon"
         className={cn(
-            "h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive",
-            isSelected && "opacity-100" // Keep delete visible if selected
+            "h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-sidebar-foreground/60 hover:text-destructive",
+            isSelected && "opacity-100 text-primary-foreground/70 dark:text-sidebar-accent-foreground/70" 
         )}
         onClick={handleDelete}
         aria-label={`Delete session: ${session.name}`}
@@ -50,3 +54,5 @@ export function SessionListItem({ session, isSelected, onSelect, onDelete }: Ses
     </div>
   );
 }
+
+```

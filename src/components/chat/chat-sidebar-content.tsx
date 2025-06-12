@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -10,8 +11,9 @@ import { KbManualEntryForm } from './kb-manual-entry-form';
 import { KbFileUploadForm } from './kb-file-upload-form';
 import { SessionListItem } from './session-list-item';
 import type { ChatSession } from '@/types';
-import { PlusSquare, ChevronDown, ChevronUp, FolderKanban, BookText } from 'lucide-react';
+import { PlusSquare, FolderKanban, BookText, Settings, LogOut } from 'lucide-react'; // Added Settings, LogOut
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'; // Added Avatar
 
 interface ChatSidebarContentProps {
   sessions: ChatSession[];
@@ -20,7 +22,7 @@ interface ChatSidebarContentProps {
   onSelectSession: (sessionId: string) => void;
   onDeleteSession: (sessionId: string) => void;
   onKnowledgeBaseUpdate: (updatedSession: ChatSession) => void;
-  sidebarOpen?: boolean; // from useSidebar hook if needed for conditional rendering
+  sidebarOpen?: boolean; 
 }
 
 export function ChatSidebarContent({
@@ -30,35 +32,50 @@ export function ChatSidebarContent({
   onSelectSession,
   onDeleteSession,
   onKnowledgeBaseUpdate,
-  sidebarOpen,
 }: ChatSidebarContentProps) {
   
   const isKbDisabled = !currentSession;
 
+  // Mock user data for display, similar to the image
+  const mockUser = {
+    name: "Gopinath Murugesan",
+    email: "mgopinath2810@gmail.com",
+    avatarUrl: "https://placehold.co/40x40.png", // Replace with actual avatar if available
+  };
+
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
-      {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b border-sidebar-border">
-        <div className="flex items-center gap-2">
-          <Icons.Logo className="h-7 w-7 text-primary" />
-          <h1 className="text-xl font-semibold font-headline text-primary">ALLamAI</h1>
+      {/* User Info - Mimicking ChatGPT image */}
+      <div className="p-3 border-b border-sidebar-border flex items-center gap-3">
+        <Avatar className="h-8 w-8">
+          <AvatarImage src={mockUser.avatarUrl} alt={mockUser.name} data-ai-hint="profile person" />
+          <AvatarFallback>{mockUser.name.charAt(0)}</AvatarFallback>
+        </Avatar>
+        <div>
+          <p className="text-sm font-medium text-sidebar-foreground">{mockUser.name}</p>
+          <p className="text-xs text-sidebar-foreground/70">{mockUser.email}</p>
         </div>
-        <ThemeToggle />
       </div>
-
+      
       {/* New Chat Button */}
       <div className="p-3">
-        <Button variant="outline" className="w-full justify-start gap-2 border-sidebar-border hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" onClick={onCreateNewSession}>
+        <Button 
+          variant="default" // Changed from outline
+          className="w-full justify-start gap-2 bg-primary text-primary-foreground hover:bg-primary/90 dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90" 
+          onClick={onCreateNewSession}
+        >
           <PlusSquare className="h-4 w-4" />
           New Chat
         </Button>
       </div>
       
-      <Separator className="bg-sidebar-border" />
-
-      {/* Sessions List */}
+      {/* Sessions List - "Chat" is the active section */}
       <ScrollArea className="flex-1">
-        <div className="p-3 space-y-1.5">
+        <div className="p-3 space-y-0.5"> {/* Reduced space-y for tighter list */}
+            {/* "Chat" label or active item representation */}
+             <div className="px-2 py-1.5 text-sm font-medium text-sidebar-foreground/70 group-data-[collapsible=icon]:hidden mb-1">
+                Chat
+             </div>
           {sessions.length === 0 && (
              <p className="text-xs text-center text-muted-foreground p-4">No chat sessions yet. Click "New Chat" to start.</p>
           )}
@@ -74,11 +91,11 @@ export function ChatSidebarContent({
         </div>
       </ScrollArea>
 
-      <Separator className="bg-sidebar-border" />
+      <Separator className="bg-sidebar-border my-2" />
       
-      {/* Knowledge Base Section */}
+      {/* Knowledge Base Section - Kept as is, can be themed later */}
       <div className="p-2">
-        <Accordion type="single" collapsible defaultValue="kb-item" className="w-full">
+        <Accordion type="single" collapsible className="w-full">
           <AccordionItem value="kb-item" className="border-b-0">
             <AccordionTrigger className="p-2 text-sm font-medium hover:no-underline hover:bg-sidebar-accent/50 rounded-md [&[data-state=open]>svg]:text-primary">
               <div className="flex items-center gap-2">
@@ -102,11 +119,10 @@ export function ChatSidebarContent({
           </AccordionItem>
         </Accordion>
       </div>
-       {/* Display current KB content (optional) */}
        {currentSession && (currentSession.knowledgeBaseManual.length > 0 || currentSession.knowledgeBaseFiles.length > 0) && (
         <>
           <Separator className="bg-sidebar-border" />
-          <ScrollArea className="h-[150px] p-2 text-xs">
+          <ScrollArea className="h-[100px] p-2 text-xs">
             <h3 className="font-medium text-sidebar-foreground/80 mb-1 flex items-center gap-1.5"><BookText size={14}/> Current KB</h3>
             {currentSession.knowledgeBaseManual.map((entry, idx) => (
               <div key={`manual-${idx}`} className="p-1.5 bg-sidebar-accent/10 rounded text-sidebar-foreground/90 mb-1 truncate" title={entry}>Manual: {entry}</div>
@@ -117,6 +133,22 @@ export function ChatSidebarContent({
           </ScrollArea>
         </>
       )}
+
+      <Separator className="bg-sidebar-border mt-auto" />
+      {/* Bottom controls: Settings, Log Out, Theme Toggle */}
+      <div className="p-3 space-y-1">
+        <Button variant="ghost" className="w-full justify-start gap-2 text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent">
+            <Settings className="h-4 w-4" /> Settings
+        </Button>
+        <Button variant="ghost" className="w-full justify-start gap-2 text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent">
+            <LogOut className="h-4 w-4" /> Log Out
+        </Button>
+        <div className="flex justify-center pt-1">
+            <ThemeToggle />
+        </div>
+      </div>
     </div>
   );
 }
+
+```
