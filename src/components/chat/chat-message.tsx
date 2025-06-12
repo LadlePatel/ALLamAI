@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -23,7 +24,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
       )}
     >
       {!isUser && (
-        <Avatar className="h-8 w-8 border border-border">
+        <Avatar className="h-8 w-8 border-none"> {/* Removed border */}
           <AvatarFallback className="bg-primary text-primary-foreground">
             <Bot className="h-5 w-5" />
           </AvatarFallback>
@@ -31,17 +32,17 @@ export function ChatMessage({ message }: ChatMessageProps) {
       )}
       <div
         className={cn(
-          'max-w-[70%] rounded-lg shadow-sm',
+          'max-w-[70%] rounded-lg', // Removed shadow-sm
           isUser
             ? 'bg-primary text-primary-foreground rounded-br-none'
-            : 'bg-card text-card-foreground rounded-bl-none border border-border'
+            : 'bg-card text-card-foreground rounded-bl-none' // Removed border and border-border
         )}
       >
         <div className={cn('px-3.5 py-2.5')}>
           <p className="text-sm whitespace-pre-wrap font-body">{message.content}</p>
         </div>
         {!isUser && (message.knowledgeBaseUsed || message.fromCache !== undefined || message.durationMs !== undefined) && (
-          <div className="px-3.5 pb-2.5 pt-1 border-t border-border/50 space-y-1.5">
+          <div className="px-3.5 pb-2.5 pt-1 border-t border-border/20 space-y-1.5"> {/* Made border lighter */}
             {message.fromCache && (
               <Badge variant="secondary" className="text-xs py-0.5 px-1.5">
                 <Zap className="h-3 w-3 mr-1" /> From Cache (Simulated)
@@ -71,7 +72,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
         </p>
       </div>
       {isUser && (
-        <Avatar className="h-8 w-8 border border-border">
+        <Avatar className="h-8 w-8 border-none"> {/* Removed border */}
           <AvatarFallback className="bg-secondary text-secondary-foreground">
             <UserCircle2 className="h-5 w-5" />
           </AvatarFallback>
