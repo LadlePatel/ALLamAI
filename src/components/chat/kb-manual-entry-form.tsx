@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from 'react';
@@ -7,8 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import type { ChatSession } from '@/types';
-import { addKnowledgeBaseManualEntry } from '@/ai/flows/add-knowledge-base-manual-entry';
-import { FilePlus2 } from 'lucide-react';
+// import { addKnowledgeBaseManualEntry } from '@/ai/flows/add-knowledge-base-manual-entry'; // AI Call Removed
+import { FilePlus2, Loader2 } from 'lucide-react';
 
 interface KbManualEntryFormProps {
   currentSession: ChatSession | null | undefined;
@@ -27,30 +28,31 @@ export function KbManualEntryForm({ currentSession, onKnowledgeBaseUpdate, disab
 
     setIsLoading(true);
     try {
-      // Call AI flow
-      const result = await addKnowledgeBaseManualEntry({ entry });
+      // AI call removed for UI focus - Simulating processing
+      await new Promise(resolve => setTimeout(resolve, 300)); // Simulate processing delay
+      const simulatedResult = { success: true, message: `Entry "${entry.substring(0, 20)}..." processed locally (AI disabled).` };
       
-      if (result.success) {
+      if (simulatedResult.success) {
         const updatedKbManual = [...(currentSession.knowledgeBaseManual || []), entry];
         const updatedSession: ChatSession = { ...currentSession, knowledgeBaseManual: updatedKbManual };
         onKnowledgeBaseUpdate(updatedSession);
         setEntry('');
         toast({
-          title: 'Knowledge Base Updated',
-          description: result.message,
+          title: 'Knowledge Base Updated (Simulated)',
+          description: simulatedResult.message,
         });
       } else {
         toast({
-          title: 'Error',
-          description: result.message || 'Failed to add manual entry.',
+          title: 'Error (Simulated)',
+          description: simulatedResult.message || 'Failed to add manual entry.',
           variant: 'destructive',
         });
       }
     } catch (error) {
-      console.error('Error adding manual KB entry:', error);
+      console.error('Error simulating manual KB entry:', error);
       toast({
         title: 'Error',
-        description: 'An unexpected error occurred.',
+        description: 'An unexpected error occurred during simulated entry.',
         variant: 'destructive',
       });
     } finally {
@@ -88,6 +90,7 @@ export function KbManualEntryForm({ currentSession, onKnowledgeBaseUpdate, disab
             disabled={!currentSession || !entry.trim() || isLoading || disabled}
             size="sm"
           >
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
             {isLoading ? 'Adding...' : 'Add Entry'}
           </Button>
         </form>

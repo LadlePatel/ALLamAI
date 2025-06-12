@@ -1,18 +1,15 @@
+
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { ChatLayout } from '@/components/chat/chat-layout';
 import { ChatArea } from '@/components/chat/chat-area';
 import type { ChatMessage, ChatSession, KnowledgeBaseFile } from '@/types';
-import { chatbotConversation } from '@/ai/flows/chatbot-conversation';
+// import { chatbotConversation } from '@/ai/flows/chatbot-conversation'; // AI Call Removed
 import { useToast } from '@/hooks/use-toast';
-import { v4 as uuidv4 } from 'uuid'; // For generating unique IDs
+import { Icons } from '@/components/icons'; // Added for loading state
 
-// Mock uuid if not available (e.g. in environments where crypto is limited)
-// or install `uuid` and `@types/uuid`
-// For this exercise, we assume uuid is available or a simple polyfill.
-// If `uuid` is not in package.json, we'd use a simpler ID generator.
-// Let's use a simple one for now to avoid package changes.
+// For generating unique IDs
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
 
@@ -40,7 +37,6 @@ export default function ChatPage() {
       if (storedCurrentSessionId) {
         setCurrentSessionId(storedCurrentSessionId);
       } else if (storedSessions) {
-        // Default to the first session if no current ID is stored but sessions exist
         const parsedSessions = JSON.parse(storedSessions);
         if (parsedSessions.length > 0) {
           setCurrentSessionId(parsedSessions[0].id);
@@ -48,9 +44,6 @@ export default function ChatPage() {
       }
     } catch (error) {
       console.error("Failed to load data from localStorage", error);
-      // Optionally clear corrupted storage
-      // localStorage.removeItem(SESSIONS_STORAGE_KEY);
-      // localStorage.removeItem(CURRENT_SESSION_ID_STORAGE_KEY);
     }
   }, []);
 
@@ -90,47 +83,31 @@ export default function ChatPage() {
     setIsLoading(true);
 
     try {
-      // Prepare knowledge base string
-      let knowledgeBaseString = "";
-      if (currentSession.knowledgeBaseManual.length > 0) {
-        knowledgeBaseString += "Manual Entries:\n" + currentSession.knowledgeBaseManual.join("\n") + "\n\n";
-      }
-      if (currentSession.knowledgeBaseFiles.length > 0) {
-        knowledgeBaseString += "File Contents:\n" + currentSession.knowledgeBaseFiles.map(f => `--- ${f.name} ---\n${f.content}`).join("\n\n") + "\n";
-      }
-
-
-      const conversationHistory = currentSession.messages.map(msg => ({
-        role: msg.role,
-        content: msg.content,
-      }));
+      // AI call removed for UI focus
+      // Simulating a delay and response
+      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
+      const simulatedResponse = `You said: "${userInput}". (AI response is currently disabled for UI development)`;
       
-      const aiResponse = await chatbotConversation({
-        userInput,
-        conversationHistory: conversationHistory, // Send previous messages from current session
-        knowledgeBase: knowledgeBaseString || undefined,
-      });
-
       const botMessage: ChatMessage = {
         id: generateId(),
         role: 'bot',
-        content: aiResponse.response,
+        content: simulatedResponse,
         timestamp: Date.now(),
       };
       
       updateSession({ ...currentSession, messages: [...updatedMessages, botMessage] });
 
     } catch (error) {
-      console.error('Error getting AI response:', error);
+      console.error('Error simulating AI response:', error);
       toast({
         title: 'Error',
-        description: 'Failed to get response from AI.',
+        description: 'Failed to get simulated response.',
         variant: 'destructive',
       });
        const errorMessage: ChatMessage = {
         id: generateId(),
         role: 'bot',
-        content: "Sorry, I couldn't process your request. Please try again.",
+        content: "Sorry, I couldn't process your request (simulation error). Please try again.",
         timestamp: Date.now(),
       };
       updateSession({ ...currentSession, messages: [...updatedMessages, errorMessage] });
@@ -143,13 +120,13 @@ export default function ChatPage() {
     const newSessionId = generateId();
     const newSession: ChatSession = {
       id: newSessionId,
-      name: `Chat ${new Date().toLocaleTimeString()}`,
+      name: `Chat ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
       createdAt: Date.now(),
       messages: [],
       knowledgeBaseManual: [],
       knowledgeBaseFiles: [],
     };
-    setSessions(prevSessions => [newSession, ...prevSessions]); // Add to the beginning for recency
+    setSessions(prevSessions => [newSession, ...prevSessions]);
     setCurrentSessionId(newSessionId);
   };
 
@@ -158,10 +135,13 @@ export default function ChatPage() {
   };
 
   const handleDeleteSession = (sessionId: string) => {
-    setSessions(prevSessions => prevSessions.filter(s => s.id !== sessionId));
-    if (currentSessionId === sessionId) {
-      setCurrentSessionId(sessions.length > 1 ? sessions.find(s => s.id !== sessionId)?.id ?? null : null);
-    }
+    setSessions(prevSessions => {
+      const remainingSessions = prevSessions.filter(s => s.id !== sessionId);
+      if (currentSessionId === sessionId) {
+        setCurrentSessionId(remainingSessions.length > 0 ? remainingSessions[0].id : null);
+      }
+      return remainingSessions;
+    });
     toast({ title: 'Session Deleted' });
   };
 
@@ -172,7 +152,6 @@ export default function ChatPage() {
   };
   
   if (!isMounted) {
-     // Optional: render a loading skeleton or null for SSR/initial client render phase
      return (
         <div className="flex h-screen w-full items-center justify-center bg-background">
           <Icons.Logo className="h-16 w-16 animate-pulse text-primary" />

@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useRef } from 'react';
@@ -7,8 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import type { ChatSession, KnowledgeBaseFile } from '@/types';
-import { addKnowledgeBaseFileUpload } from '@/ai/flows/add-knowledge-base-file-upload';
-import { FileUp } from 'lucide-react';
+// import { addKnowledgeBaseFileUpload } from '@/ai/flows/add-knowledge-base-file-upload'; // AI Call Removed
+import { FileUp, Loader2 } from 'lucide-react';
 
 interface KbFileUploadFormProps {
   currentSession: ChatSession | null | undefined;
@@ -37,17 +38,16 @@ export function KbFileUploadForm({ currentSession, onKnowledgeBaseUpdate, disabl
     const reader = new FileReader();
     reader.onload = async (event) => {
       if (event.target?.result && typeof event.target.result === 'string') {
-        const fileDataUri = event.target.result;
+        // const fileDataUri = event.target.result; // Not needed for simulation
         try {
-          // Call AI flow
-          const result = await addKnowledgeBaseFileUpload({ fileDataUri, filename: file.name });
+          // AI call removed for UI focus - Simulating processing
+          await new Promise(resolve => setTimeout(resolve, 500)); // Simulate processing delay
+          const simulatedResult = { success: true, message: `File "${file.name}" processed locally (AI disabled).` };
 
-          if (result.success) {
+          if (simulatedResult.success) {
             const newKbFile: KnowledgeBaseFile = {
               name: file.name,
-              // For MVP, assume text extraction happens in the AI flow or is not needed client-side for this step
-              // In a real app, you might extract text here for TXT or store URI for PDF processing
-              content: file.type === 'text/plain' ? await file.text() : `Uploaded file: ${file.name}`, 
+              content: file.type === 'text/plain' ? await file.text() : `Simulated content for: ${file.name}`, 
               type: file.type === 'application/pdf' ? 'pdf' : 'txt',
             };
             const updatedKbFiles = [...(currentSession.knowledgeBaseFiles || []), newKbFile];
@@ -56,24 +56,24 @@ export function KbFileUploadForm({ currentSession, onKnowledgeBaseUpdate, disabl
             
             setFile(null);
             if (fileInputRef.current) {
-              fileInputRef.current.value = ""; // Reset file input
+              fileInputRef.current.value = ""; 
             }
             toast({
-              title: 'Knowledge Base Updated',
-              description: result.message,
+              title: 'Knowledge Base Updated (Simulated)',
+              description: simulatedResult.message,
             });
           } else {
             toast({
-              title: 'Error',
-              description: result.message || 'Failed to upload file.',
+              title: 'Error (Simulated)',
+              description: simulatedResult.message || 'Failed to upload file.',
               variant: 'destructive',
             });
           }
         } catch (error) {
-          console.error('Error uploading KB file:', error);
+          console.error('Error simulating KB file upload:', error);
           toast({
             title: 'Error',
-            description: 'An unexpected error occurred during file upload.',
+            description: 'An unexpected error occurred during simulated file upload.',
             variant: 'destructive',
           });
         } finally {
@@ -96,7 +96,7 @@ export function KbFileUploadForm({ currentSession, onKnowledgeBaseUpdate, disabl
         });
         setIsLoading(false);
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(file); // Still read to simulate some processing
   };
 
   return (
@@ -129,6 +129,7 @@ export function KbFileUploadForm({ currentSession, onKnowledgeBaseUpdate, disabl
             disabled={!currentSession || !file || isLoading || disabled}
             size="sm"
           >
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
             {isLoading ? 'Uploading...' : 'Upload File'}
           </Button>
         </form>
