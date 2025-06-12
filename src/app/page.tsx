@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
 import { ChatLayout } from '@/components/chat/chat-layout';
 import { ChatArea } from '@/components/chat/chat-area';
 import type { ChatMessage, ChatSession, KnowledgeBaseFile } from '@/types';
@@ -31,7 +32,9 @@ export default function ChatPage() {
       const storedSessions = localStorage.getItem(SESSIONS_STORAGE_KEY);
       if (storedSessions) {
         const parsedSessions = JSON.parse(storedSessions) as ChatSession[];
-        parsedSessions.forEach(s => s.messages = []); 
+        // Ensure messages array is initialized client-side even if not stored,
+        // as it will be fetched or populated.
+        parsedSessions.forEach(s => s.messages = s.messages || []);
         setSessions(parsedSessions);
 
         const storedCurrentSessionId = localStorage.getItem(CURRENT_SESSION_ID_STORAGE_KEY);
@@ -40,50 +43,29 @@ export default function ChatPage() {
         } else if (parsedSessions.length > 0) {
           setCurrentSessionId(parsedSessions[0].id);
         } else {
-          // If no sessions, create one automatically
-          handleCreateNewSession(false); // Don't switch to it if one will be loaded
+          handleCreateNewSession(true);
         }
       } else {
-        // If no sessions in local storage, create a default one
         handleCreateNewSession(true);
       }
     } catch (error) {
       console.error("Failed to load session list from localStorage", error);
       toast({ title: "Error", description: "Could not load session data.", variant: "destructive" });
-      handleCreateNewSession(true); // Create a new one on error
+      handleCreateNewSession(true);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [toast]); // handleCreateNewSession removed to avoid cycle
+  }, [toast]);
+
 
   // Fetch messages for the current session when it changes or on mount
   useEffect(() => {
     if (!currentSessionId || !isMounted) return;
 
-    const sessionToFetch = sessions.find(s => s.id === currentSessionId);
-    // Optimization: If messages are already there and not loading, maybe don't re-fetch.
-    // For now, let's re-fetch to ensure data consistency with backend, could be refined.
-    // if (sessionToFetch && sessionToFetch.messages && sessionToFetch.messages.length > 0 && !isLoading) {
-    //   return;
-    // }
-
     const fetchMessages = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`${API_BASE_URL}/sessions/${currentSessionId}/messages`);
-        if (!response.ok) {
-          // If session not found on server (404), it might be a new client-side session
-          // In this case, don't throw error, just keep messages empty.
-          if (response.status === 404) {
-            setSessions(prevSessions =>
-              prevSessions.map(s =>
-                s.id === currentSessionId ? { ...s, messages: [] } : s
-              )
-            );
-            return; 
-          }
-          throw new Error(`Failed to fetch messages: ${response.status} ${response.statusText}`);
-        }
-        const messagesData = await response.json();
+        const response = await axios.get(`${API_BASE_URL}/sessions/${currentSessionId}/messages`);
+        const messagesData = response.data;
         const fetchedMessages = Array.isArray(messagesData.messages) ? messagesData.messages : (Array.isArray(messagesData) ? messagesData : []);
 
         setSessions(prevSessions =>
@@ -91,18 +73,33 @@ export default function ChatPage() {
             s.id === currentSessionId ? { ...s, messages: fetchedMessages } : s
           )
         );
-      } catch (error) {
-        console.error('Error fetching messages:', error);
-        toast({
-          title: 'Error',
-          description: `Failed to fetch messages for session. ${error instanceof Error ? error.message : ''}`,
-          variant: 'destructive',
-        });
-        setSessions(prevSessions =>
-          prevSessions.map(s =>
-            s.id === currentSessionId ? { ...s, messages: [] } : s
-          )
-        );
+      } catch (error: any) {
+        if (axios.isAxiosError(error) && error.response && error.response.status === 404) {
+          // Session not found on server, treat as new client-side session with empty messages
+          setSessions(prevSessions =>
+            prevSessions.map(s =>
+              s.id === currentSessionId ? { ...s, messages: [] } : s
+            )
+          );
+        } else {
+          console.error('Error fetching messages:', error);
+          let detailMessage = "Failed to fetch messages for session.";
+          if (axios.isAxiosError(error) && error.response) {
+            detailMessage += ` Server: ${error.response.status} - ${JSON.stringify(error.response.data?.detail || error.response.data || error.message)}`;
+          } else if (error instanceof Error) {
+            detailMessage += ` ${error.message}`;
+          }
+          toast({
+            title: 'Error',
+            description: detailMessage,
+            variant: 'destructive',
+          });
+          setSessions(prevSessions =>
+            prevSessions.map(s =>
+              s.id === currentSessionId ? { ...s, messages: [] } : s // Ensure messages is empty on error
+            )
+          );
+        }
       } finally {
         setIsLoading(false);
       }
@@ -113,11 +110,11 @@ export default function ChatPage() {
   }, [currentSessionId, isMounted, toast]);
 
 
-  // Save session list to localStorage when it changes
+  // Save session list (metadata only) to localStorage when it changes
   useEffect(() => {
     if (!isMounted) return;
     try {
-      const sessionsToStore = sessions.map(({ messages, ...rest }) => rest);
+      const sessionsToStore = sessions.map(({ messages, ...rest }) => rest); // Exclude messages
       localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(sessionsToStore));
       
       if (currentSessionId) {
@@ -157,21 +154,10 @@ export default function ChatPage() {
       const apiRequestBody = {
         session_id: currentSession.id,
         user_input: userInput,
-        // The backend now manages conversation history and KB context per session
       };
 
-      const response = await fetch(`${API_BASE_URL}/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(apiRequestBody),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(`API Error: ${response.status} - ${errorData}`);
-      }
-      
-      const aiResponseData = await response.json();
+      const response = await axios.post(`${API_BASE_URL}/chat`, apiRequestBody);
+      const aiResponseData = response.data;
       const endTime = Date.now();
       const durationMs = endTime - startTime;
 
@@ -179,7 +165,7 @@ export default function ChatPage() {
         id: generateId(),
         role: 'bot',
         content: aiResponseData.response, 
-        timestamp: Date.now(), // Keep timestamp for ordering, but won't display for bot
+        timestamp: Date.now(),
         knowledgeBaseUsed: aiResponseData.knowledge_base_used,
         fromCache: aiResponseData.from_cache,
         cosineDistance: aiResponseData.cosine_distance,
@@ -189,11 +175,17 @@ export default function ChatPage() {
       
       addMessageToSession(currentSession.id, botMessage);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error getting AI response:', error);
+      let detailMessage = "Failed to get AI response.";
+      if (axios.isAxiosError(error) && error.response) {
+        detailMessage += ` Server: ${error.response.status} - ${JSON.stringify(error.response.data?.detail || error.response.data || error.message)}`;
+      } else if (error instanceof Error) {
+        detailMessage += ` ${error.message}`;
+      }
       toast({
         title: 'Error',
-        description: `Failed to get AI response. ${error instanceof Error ? error.message : ''}`,
+        description: detailMessage,
         variant: 'destructive',
       });
        const errorMessageContent = "Sorry, I couldn't process your request. Please try again.";
@@ -215,16 +207,15 @@ export default function ChatPage() {
       name: `Chat ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
       createdAt: Date.now(),
       messages: [],
-      knowledgeBaseManual: [], // Initialize as empty arrays
-      knowledgeBaseFiles: [],  // Initialize as empty arrays
+      knowledgeBaseManual: [],
+      knowledgeBaseFiles: [],
     };
     setSessions(prevSessions => [newSession, ...prevSessions]);
     if (switchToNew) {
       setCurrentSessionId(newSessionId);
     }
     return newSessionId;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Dependencies carefully managed
+  }, []); 
 
   const handleSelectSession = (sessionId: string) => {
     setCurrentSessionId(sessionId);
@@ -233,13 +224,7 @@ export default function ChatPage() {
   const handleDeleteSession = async (sessionId: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/sessions/${sessionId}`, {
-        method: 'DELETE',
-      });
-      if (!response.ok && response.status !== 404) { // Allow 404 if session never made it to server
-        const errorText = await response.text();
-        throw new Error(`Failed to delete session on server: ${errorText}`);
-      }
+      await axios.delete(`${API_BASE_URL}/sessions/${sessionId}`);
       
       setSessions(prevSessions => {
         const remainingSessions = prevSessions.filter(s => s.id !== sessionId);
@@ -247,21 +232,40 @@ export default function ChatPage() {
           if (remainingSessions.length > 0) {
             setCurrentSessionId(remainingSessions[0].id);
           } else {
-            // If no sessions left, create a new one
             const newFallbackId = handleCreateNewSession(true);
-            setCurrentSessionId(newFallbackId); // Set this new one as current
-            return [sessions.find(s => s.id === newFallbackId)!]; // Return only the new session
+            // The new session is already added to sessions array by handleCreateNewSession
+            // and currentSessionId is updated. So we just return remainingSessions (which will be empty then new one added)
+            // Actually, handleCreateNewSession already modifies sessions state.
+            return sessions.filter(s => s.id !== sessionId); // Let handleCreateNewSession manage adding the new one if needed
           }
         }
         return remainingSessions;
       });
       toast({ title: 'Session Deleted', description: `Session was deleted.` });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error deleting session:', error);
+        let detailMessage = "Could not delete session.";
+        if (axios.isAxiosError(error) && error.response && error.response.status === 404) {
+           // If server says 404, still remove from client
+           setSessions(prevSessions => prevSessions.filter(s => s.id !== sessionId));
+           if (currentSessionId === sessionId) {
+             if (sessions.filter(s => s.id !== sessionId).length > 0) {
+               setCurrentSessionId(sessions.filter(s => s.id !== sessionId)[0].id);
+             } else {
+               handleCreateNewSession(true);
+             }
+           }
+           toast({ title: 'Session Deleted', description: `Session removed locally (not found on server).` });
+           return; // Skip generic error toast
+        } else if (axios.isAxiosError(error) && error.response) {
+          detailMessage += ` Server: ${error.response.status} - ${JSON.stringify(error.response.data?.detail || error.response.data || error.message)}`;
+        } else if (error instanceof Error) {
+          detailMessage += ` ${error.message}`;
+        }
         toast({
           title: 'Error',
-          description: `Could not delete session. ${error instanceof Error ? error.message : ''}`,
+          description: detailMessage,
           variant: 'destructive',
         });
     } finally {
@@ -276,16 +280,11 @@ export default function ChatPage() {
     }
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/knowledge-base/add`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: currentSession.id, entry: entry }), // FastAPI expects session_id
+      const response = await axios.post(`${API_BASE_URL}/knowledge-base/add`, { 
+        session_id: currentSession.id, 
+        entry: entry 
       });
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to add KB entry: ${errorText}`);
-      }
-      const result = await response.json(); 
+      const result = response.data;
       
       if (result.success) {
         setSessions(prevSessions => prevSessions.map(s => 
@@ -297,9 +296,15 @@ export default function ChatPage() {
       } else {
         throw new Error(result.message || 'Failed to add KB entry on server.');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding manual KB entry:', error);
-      toast({ title: 'KB Error', description: `${error instanceof Error ? error.message : 'Unknown error'}`, variant: 'destructive' });
+      let detailMessage = "Failed to add manual KB entry.";
+      if (axios.isAxiosError(error) && error.response) {
+        detailMessage += ` Server: ${error.response.status} - ${JSON.stringify(error.response.data?.detail || error.response.data || error.message)}`;
+      } else if (error instanceof Error) {
+        detailMessage += ` ${error.message}`;
+      }
+      toast({ title: 'KB Error', description: detailMessage, variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }
@@ -313,22 +318,17 @@ export default function ChatPage() {
     setIsLoading(true);
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('session_id', currentSession.id); // FastAPI expects session_id
+    formData.append('session_id', currentSession.id);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/knowledge-base/upload`, {
-        method: 'POST',
-        body: formData, // FormData sets Content-Type automatically
+      const response = await axios.post(`${API_BASE_URL}/knowledge-base/upload`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to upload KB file: ${errorText}`);
-      }
-      const result = await response.json();
+      const result = response.data;
 
       if (result.success) {
         const newKbFile: KnowledgeBaseFile = {
-          name: result.filename || file.name, // Use filename from server if provided
+          name: result.filename || file.name,
           type: file.type.includes('pdf') ? 'pdf' : 'txt',
           content: `Uploaded: ${result.filename || file.name}`, 
         };
@@ -341,15 +341,21 @@ export default function ChatPage() {
       } else {
         throw new Error(result.message || 'Failed to process file on server.');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading KB file:', error);
-      toast({ title: 'KB File Error', description: `${error instanceof Error ? error.message : 'Unknown error'}`, variant: 'destructive' });
+      let detailMessage = "Failed to upload KB file.";
+      if (axios.isAxiosError(error) && error.response) {
+        detailMessage += ` Server: ${error.response.status} - ${JSON.stringify(error.response.data?.detail || error.response.data || error.message)}`;
+      } else if (error instanceof Error) {
+        detailMessage += ` ${error.message}`;
+      }
+      toast({ title: 'KB File Error', description: detailMessage, variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }
   };
   
-  if (!isMounted || !currentSessionId) { // Also ensure currentSessionId is available
+  if (!isMounted || !currentSessionId || !currentSession) {
      return (
         <div className="flex h-screen w-full items-center justify-center bg-background">
           <Icons.Logo className="h-16 w-16 animate-pulse text-primary" />
