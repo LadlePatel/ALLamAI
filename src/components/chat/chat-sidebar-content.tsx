@@ -22,7 +22,6 @@ interface ChatSidebarContentProps {
   onDeleteSession: (sessionId: string) => void;
   onAddManualKbEntry: (entry: string) => Promise<void>; 
   onAddKbFile: (file: File) => Promise<void>;          
-  onKnowledgeBaseUpdate: (updatedSession: ChatSession) => void; 
   sidebarOpen?: boolean; 
 }
 
@@ -34,7 +33,6 @@ export function ChatSidebarContent({
   onDeleteSession,
   onAddManualKbEntry, 
   onAddKbFile,       
-  onKnowledgeBaseUpdate, 
 }: ChatSidebarContentProps) {
   
   const isKbDisabled = !currentSession;
@@ -104,15 +102,15 @@ export function ChatSidebarContent({
           </AccordionItem>
         </Accordion>
       </div>
-       {currentSession && (currentSession.knowledgeBaseManual.length > 0 || currentSession.knowledgeBaseFiles.length > 0) && (
+       {currentSession && ((currentSession.knowledgeBaseManual && currentSession.knowledgeBaseManual.length > 0) || (currentSession.knowledgeBaseFiles && currentSession.knowledgeBaseFiles.length > 0)) && (
         <>
           <Separator className="bg-sidebar-border" />
           <ScrollArea className="h-[100px] p-2 text-xs">
             <h3 className="font-medium text-sidebar-foreground/80 mb-1 flex items-center gap-1.5"><BookText size={14}/> Current KB Entries</h3>
-            {currentSession.knowledgeBaseManual.map((entry, idx) => (
+            {currentSession.knowledgeBaseManual?.map((entry, idx) => (
               <div key={`manual-${idx}`} className="p-1.5 bg-sidebar-accent/10 rounded text-sidebar-foreground/90 mb-1 truncate" title={entry}>Manual: {entry}</div>
             ))}
-            {currentSession.knowledgeBaseFiles.map((file, idx) => (
+            {currentSession.knowledgeBaseFiles?.map((file, idx) => (
               <div key={`file-${idx}`} className="p-1.5 bg-sidebar-accent/10 rounded text-sidebar-foreground/90 mb-1 truncate" title={file.name}>File: {file.name}</div>
             ))}
           </ScrollArea>
@@ -134,3 +132,5 @@ export function ChatSidebarContent({
     </div>
   );
 }
+
+    

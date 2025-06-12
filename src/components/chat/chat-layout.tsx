@@ -18,9 +18,8 @@ interface ChatLayoutProps {
   onCreateNewSession: () => void;
   onSelectSession: (sessionId: string) => void;
   onDeleteSession: (sessionId: string) => void;
-  onAddManualKbEntry: (entry: string) => Promise<void>; // New prop
-  onAddKbFile: (file: File) => Promise<void>;          // New prop
-  onKnowledgeBaseUpdate: (updatedSession: ChatSession) => void; // Keep for now if other parts use it, but new handlers are primary
+  onAddManualKbEntry: (entry: string) => Promise<void>; 
+  onAddKbFile: (file: File) => Promise<void>;          
   children: React.ReactNode; // For ChatArea
 }
 
@@ -32,7 +31,6 @@ export function ChatLayout({
   onDeleteSession,
   onAddManualKbEntry,
   onAddKbFile,
-  onKnowledgeBaseUpdate, // Keep for now
   children,
 }: ChatLayoutProps) {
   return (
@@ -45,9 +43,8 @@ export function ChatLayout({
             onCreateNewSession={onCreateNewSession}
             onSelectSession={onSelectSession}
             onDeleteSession={onDeleteSession}
-            onAddManualKbEntry={onAddManualKbEntry} // Pass down
-            onAddKbFile={onAddKbFile}               // Pass down
-            onKnowledgeBaseUpdate={onKnowledgeBaseUpdate} // Keep for now
+            onAddManualKbEntry={onAddManualKbEntry} 
+            onAddKbFile={onAddKbFile}               
           />
           <SidebarRail />
         </Sidebar>
