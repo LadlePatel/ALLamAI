@@ -11,9 +11,9 @@ import { KbManualEntryForm } from './kb-manual-entry-form';
 import { KbFileUploadForm } from './kb-file-upload-form';
 import { SessionListItem } from './session-list-item';
 import type { ChatSession } from '@/types';
-import { PlusSquare, FolderKanban, BookText, Settings, LogOut } from 'lucide-react'; // Added Settings, LogOut
+import { PlusSquare, FolderKanban, BookText, Settings, LogOut } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'; // Added Avatar
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface ChatSidebarContentProps {
   sessions: ChatSession[];
@@ -21,7 +21,9 @@ interface ChatSidebarContentProps {
   onCreateNewSession: () => void;
   onSelectSession: (sessionId: string) => void;
   onDeleteSession: (sessionId: string) => void;
-  onKnowledgeBaseUpdate: (updatedSession: ChatSession) => void;
+  onAddManualKbEntry: (entry: string) => Promise<void>; // New prop
+  onAddKbFile: (file: File) => Promise<void>;          // New prop
+  onKnowledgeBaseUpdate: (updatedSession: ChatSession) => void; // Kept for compatibility, but new handlers are primary
   sidebarOpen?: boolean; 
 }
 
@@ -31,21 +33,21 @@ export function ChatSidebarContent({
   onCreateNewSession,
   onSelectSession,
   onDeleteSession,
-  onKnowledgeBaseUpdate,
+  onAddManualKbEntry, // Use this
+  onAddKbFile,       // Use this
+  onKnowledgeBaseUpdate, // Keep for now
 }: ChatSidebarContentProps) {
   
   const isKbDisabled = !currentSession;
 
-  // Mock user data for display, similar to the image
   const mockUser = {
     name: "Gopinath Murugesan",
     email: "mgopinath2810@gmail.com",
-    avatarUrl: "https://placehold.co/40x40.png", // Replace with actual avatar if available
+    avatarUrl: "https://placehold.co/40x40.png",
   };
 
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
-      {/* User Info - Mimicking ChatGPT image */}
       <div className="p-3 border-b border-sidebar-border flex items-center gap-3">
         <Avatar className="h-8 w-8">
           <AvatarImage src={mockUser.avatarUrl} alt={mockUser.name} data-ai-hint="profile person" />
@@ -57,10 +59,9 @@ export function ChatSidebarContent({
         </div>
       </div>
       
-      {/* New Chat Button */}
       <div className="p-3">
         <Button 
-          variant="default" // Changed from outline
+          variant="default"
           className="w-full justify-start gap-2 bg-primary text-primary-foreground hover:bg-primary/90 dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90" 
           onClick={onCreateNewSession}
         >
@@ -69,10 +70,8 @@ export function ChatSidebarContent({
         </Button>
       </div>
       
-      {/* Sessions List - "Chat" is the active section */}
       <ScrollArea className="flex-1">
-        <div className="p-3 space-y-0.5"> {/* Reduced space-y for tighter list */}
-            {/* "Chat" label or active item representation */}
+        <div className="p-3 space-y-0.5">
              <div className="px-2 py-1.5 text-sm font-medium text-sidebar-foreground/70 group-data-[collapsible=icon]:hidden mb-1">
                 Chat
              </div>
@@ -93,7 +92,6 @@ export function ChatSidebarContent({
 
       <Separator className="bg-sidebar-border my-2" />
       
-      {/* Knowledge Base Section - Kept as is, can be themed later */}
       <div className="p-2">
         <Accordion type="single" collapsible className="w-full">
           <AccordionItem value="kb-item" className="border-b-0">
@@ -105,14 +103,12 @@ export function ChatSidebarContent({
             </AccordionTrigger>
             <AccordionContent className="pt-1 pb-0 space-y-2">
               <KbManualEntryForm 
-                currentSession={currentSession} 
-                onKnowledgeBaseUpdate={onKnowledgeBaseUpdate}
+                onAddEntry={onAddManualKbEntry} // Pass the new handler
                 disabled={isKbDisabled}
               />
               <Separator className="my-2 bg-sidebar-border/50" />
               <KbFileUploadForm 
-                currentSession={currentSession} 
-                onKnowledgeBaseUpdate={onKnowledgeBaseUpdate}
+                onAddFile={onAddKbFile} // Pass the new handler
                 disabled={isKbDisabled}
               />
             </AccordionContent>
@@ -123,7 +119,7 @@ export function ChatSidebarContent({
         <>
           <Separator className="bg-sidebar-border" />
           <ScrollArea className="h-[100px] p-2 text-xs">
-            <h3 className="font-medium text-sidebar-foreground/80 mb-1 flex items-center gap-1.5"><BookText size={14}/> Current KB</h3>
+            <h3 className="font-medium text-sidebar-foreground/80 mb-1 flex items-center gap-1.5"><BookText size={14}/> Current KB Entries</h3>
             {currentSession.knowledgeBaseManual.map((entry, idx) => (
               <div key={`manual-${idx}`} className="p-1.5 bg-sidebar-accent/10 rounded text-sidebar-foreground/90 mb-1 truncate" title={entry}>Manual: {entry}</div>
             ))}
@@ -135,7 +131,6 @@ export function ChatSidebarContent({
       )}
 
       <Separator className="bg-sidebar-border mt-auto" />
-      {/* Bottom controls: Settings, Log Out, Theme Toggle */}
       <div className="p-3 space-y-1">
         <Button variant="ghost" className="w-full justify-start gap-2 text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent">
             <Settings className="h-4 w-4" /> Settings
@@ -150,3 +145,5 @@ export function ChatSidebarContent({
     </div>
   );
 }
+
+    

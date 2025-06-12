@@ -6,55 +6,31 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
-import type { ChatSession } from '@/types';
+// import { useToast } from '@/hooks/use-toast'; // Toast will be handled by parent
+// import type { ChatSession } from '@/types'; // No longer need ChatSession type here
 import { FilePlus2, Loader2 } from 'lucide-react';
 
 interface KbManualEntryFormProps {
-  currentSession: ChatSession | null | undefined;
-  onKnowledgeBaseUpdate: (updatedSession: ChatSession) => void;
+  onAddEntry: (entry: string) => Promise<void>; // Changed prop
   disabled?: boolean;
 }
 
-export function KbManualEntryForm({ currentSession, onKnowledgeBaseUpdate, disabled }: KbManualEntryFormProps) {
+export function KbManualEntryForm({ onAddEntry, disabled }: KbManualEntryFormProps) {
   const [entry, setEntry] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
+  // const { toast } = useToast(); // Parent will handle toasts
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentSession || !entry.trim()) return;
+    if (!entry.trim() || disabled) return;
 
     setIsLoading(true);
     try {
-      // Simulating processing. A real implementation would send this to a backend
-      // to be vectorized and stored in a vector database.
-      await new Promise(resolve => setTimeout(resolve, 300)); 
-      const simulatedResult = { success: true, message: `Entry processed locally (simulated for UI). Real KB would use vector embeddings.` };
-      
-      if (simulatedResult.success) {
-        const updatedKbManual = [...(currentSession.knowledgeBaseManual || []), entry.trim()];
-        const updatedSession: ChatSession = { ...currentSession, knowledgeBaseManual: updatedKbManual };
-        onKnowledgeBaseUpdate(updatedSession);
-        setEntry('');
-        toast({
-          title: 'Knowledge Base Updated (Simulated)',
-          description: simulatedResult.message,
-        });
-      } else {
-        toast({
-          title: 'Error (Simulated)',
-          description: simulatedResult.message || 'Failed to add manual entry.',
-          variant: 'destructive',
-        });
-      }
+      await onAddEntry(entry.trim()); // Call the new prop
+      setEntry(''); // Clear input on successful call (parent handles actual success)
     } catch (error) {
-      console.error('Error simulating manual KB entry:', error);
-      toast({
-        title: 'Error',
-        description: 'An unexpected error occurred during simulated entry.',
-        variant: 'destructive',
-      });
+      // Error handling (e.g., toast) is now primarily managed by the parent component (page.tsx)
+      console.error('Error submitting manual entry form:', error);
     } finally {
       setIsLoading(false);
     }
@@ -81,13 +57,13 @@ export function KbManualEntryForm({ currentSession, onKnowledgeBaseUpdate, disab
               placeholder="Type your knowledge entry here..."
               rows={3}
               className="text-xs"
-              disabled={!currentSession || isLoading || disabled}
+              disabled={disabled || isLoading}
             />
           </div>
           <Button 
             type="submit" 
             className="w-full text-xs" 
-            disabled={!currentSession || !entry.trim() || isLoading || disabled}
+            disabled={disabled || !entry.trim() || isLoading}
             size="sm"
           >
             {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
@@ -98,3 +74,5 @@ export function KbManualEntryForm({ currentSession, onKnowledgeBaseUpdate, disab
     </Card>
   );
 }
+
+    

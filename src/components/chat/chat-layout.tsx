@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -17,7 +18,9 @@ interface ChatLayoutProps {
   onCreateNewSession: () => void;
   onSelectSession: (sessionId: string) => void;
   onDeleteSession: (sessionId: string) => void;
-  onKnowledgeBaseUpdate: (updatedSession: ChatSession) => void;
+  onAddManualKbEntry: (entry: string) => Promise<void>; // New prop
+  onAddKbFile: (file: File) => Promise<void>;          // New prop
+  onKnowledgeBaseUpdate: (updatedSession: ChatSession) => void; // Keep for now if other parts use it, but new handlers are primary
   children: React.ReactNode; // For ChatArea
 }
 
@@ -27,7 +30,9 @@ export function ChatLayout({
   onCreateNewSession,
   onSelectSession,
   onDeleteSession,
-  onKnowledgeBaseUpdate,
+  onAddManualKbEntry,
+  onAddKbFile,
+  onKnowledgeBaseUpdate, // Keep for now
   children,
 }: ChatLayoutProps) {
   return (
@@ -40,7 +45,9 @@ export function ChatLayout({
             onCreateNewSession={onCreateNewSession}
             onSelectSession={onSelectSession}
             onDeleteSession={onDeleteSession}
-            onKnowledgeBaseUpdate={onKnowledgeBaseUpdate}
+            onAddManualKbEntry={onAddManualKbEntry} // Pass down
+            onAddKbFile={onAddKbFile}               // Pass down
+            onKnowledgeBaseUpdate={onKnowledgeBaseUpdate} // Keep for now
           />
           <SidebarRail />
         </Sidebar>
@@ -57,3 +64,5 @@ export function ChatLayout({
     </SidebarProvider>
   );
 }
+
+    
