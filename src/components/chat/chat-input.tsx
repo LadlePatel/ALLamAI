@@ -54,7 +54,7 @@ export function ChatInput({ onSendMessage, isLoading }: ChatInputProps) {
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="Send a message..."
-        className="flex-1 resize-none overflow-y-auto rounded-xl border-2 border-input bg-card focus-visible:ring-primary focus-visible:ring-offset-0 pr-12 text-sm max-h-[120px]"
+        className="flex-1 resize-none overflow-y-auto rounded-xl border border-primary/70 bg-card focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-0 pr-12 text-sm max-h-[120px]"
         rows={1}
         disabled={isLoading}
         aria-label="Chat message input"
