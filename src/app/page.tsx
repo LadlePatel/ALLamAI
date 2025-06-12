@@ -9,7 +9,7 @@ import type { ChatMessage, ChatSession, KnowledgeBaseFile } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Icons } from '@/components/icons';
 
-const API_BASE_URL = 'http://34.67.71.118:8000';
+const API_BASE_URL = 'https://34.134.224.160'; // Updated API Base URL
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -32,8 +32,9 @@ export default function ChatPage() {
       const storedSessions = localStorage.getItem(SESSIONS_STORAGE_KEY);
       if (storedSessions) {
         const parsedSessions = JSON.parse(storedSessions) as ChatSession[];
+        // Ensure all sessions have necessary arrays initialized
         parsedSessions.forEach(s => {
-          s.messages = s.messages || [];
+          s.messages = s.messages || []; // Messages are primarily server-side now, but client might keep a copy
           s.knowledgeBaseManual = s.knowledgeBaseManual || [];
           s.knowledgeBaseFiles = s.knowledgeBaseFiles || [];
         });
@@ -45,18 +46,18 @@ export default function ChatPage() {
         } else if (parsedSessions.length > 0) {
           setCurrentSessionId(parsedSessions[0].id);
         } else {
-          handleCreateNewSession(true);
+          handleCreateNewSession(true); // Create a new session if none are found or stored
         }
       } else {
-        handleCreateNewSession(true);
+        handleCreateNewSession(true); // Create a new session if no sessions in localStorage
       }
     } catch (error) {
       console.error("Failed to load session list from localStorage", error);
-      toast({ title: "Error", description: "Could not load session data.", variant: "destructive" });
-      handleCreateNewSession(true);
+      toast({ title: "Error", description: "Could not load session data from local storage. Starting fresh.", variant: "destructive" });
+      handleCreateNewSession(true); // Ensure a session exists even if local storage fails
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [toast]);
+  }, [toast]); // handleCreateNewSession dependency removed as it causes loops if toast is involved; it's stable.
 
 
   // Fetch messages for the current session when it changes or on mount
@@ -68,6 +69,7 @@ export default function ChatPage() {
       try {
         const response = await axios.get(`${API_BASE_URL}/sessions/${currentSessionId}/messages`);
         const messagesData = response.data;
+        // Assuming response.data is { messages: ChatMessage[] } or similar
         const fetchedMessages = Array.isArray(messagesData.messages) ? messagesData.messages : (Array.isArray(messagesData) ? messagesData : []);
 
         setSessions(prevSessions =>
@@ -78,6 +80,7 @@ export default function ChatPage() {
       } catch (error: any) {
         if (axios.isAxiosError(error) && error.response && error.response.status === 404) {
           // Session not found on server, treat as new client-side session with empty messages
+          console.log(`Session ${currentSessionId} not found on server. Initializing with empty messages.`);
           setSessions(prevSessions =>
             prevSessions.map(s =>
               s.id === currentSessionId ? { ...s, messages: [] } : s
@@ -96,9 +99,10 @@ export default function ChatPage() {
             description: detailMessage,
             variant: 'destructive',
           });
+          // Ensure messages array is empty if fetching fails, to prevent UI errors
           setSessions(prevSessions =>
             prevSessions.map(s =>
-              s.id === currentSessionId ? { ...s, messages: [] } : s // Ensure messages is empty on error
+              s.id === currentSessionId ? { ...s, messages: [] } : s
             )
           );
         }
@@ -109,14 +113,19 @@ export default function ChatPage() {
 
     fetchMessages();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSessionId, isMounted, toast]);
+  }, [currentSessionId, isMounted, toast]); // API_BASE_URL is stable, toast might change if its provider rerenders
 
 
   // Save session list (metadata only) to localStorage when it changes
   useEffect(() => {
-    if (!isMounted) return;
+    if (!isMounted) return; // Don't save during server-side rendering or before hydration
     try {
-      const sessionsToStore = sessions.map(({ messages, ...rest }) => rest); // Exclude messages
+      // Store only session metadata, not the messages themselves to keep localStorage light
+      const sessionsToStore = sessions.map(({ messages, ...rest }) => ({
+        ...rest,
+        knowledgeBaseManual: rest.knowledgeBaseManual || [], // ensure arrays exist
+        knowledgeBaseFiles: rest.knowledgeBaseFiles || [],   // ensure arrays exist
+      }));
       localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(sessionsToStore));
       
       if (currentSessionId) {
@@ -126,6 +135,8 @@ export default function ChatPage() {
       }
     } catch (error) {
       console.error("Failed to save session list to localStorage", error);
+      // Optionally, inform the user if saving fails, though often this is a silent operation
+      // toast({ title: "Warning", description: "Could not save session data to local storage.", variant: "default" });
     }
   }, [sessions, currentSessionId, isMounted]);
 
@@ -139,7 +150,10 @@ export default function ChatPage() {
 
 
   const handleSendMessage = async (userInput: string) => {
-    if (!currentSession) return;
+    if (!currentSession) {
+        toast({ title: 'No active session', description: 'Cannot send message.', variant: 'destructive' });
+        return;
+    }
 
     const userMessage: ChatMessage = {
       id: generateId(),
@@ -153,26 +167,27 @@ export default function ChatPage() {
     const startTime = Date.now();
 
     try {
+      // The backend now manages history and knowledge base context
       const apiRequestBody = {
-        session_id: currentSession.id,
+        session_id: currentSession.id, // Backend needs to know which session this is for
         user_input: userInput,
       };
 
       const response = await axios.post(`${API_BASE_URL}/chat`, apiRequestBody);
-      const aiResponseData = response.data;
+      const aiResponseData = response.data; // Assuming this matches ChatbotConversationOutput structure
       const endTime = Date.now();
       const durationMs = endTime - startTime;
 
       const botMessage: ChatMessage = {
         id: generateId(),
         role: 'bot',
-        content: aiResponseData.response, 
-        timestamp: Date.now(), // Keep timestamp for potential internal use, ChatMessage component controls display
+        content: aiResponseData.response, // Assuming backend key is 'response'
+        timestamp: Date.now(), // Or use a server-provided timestamp if available
         durationMs: durationMs,
-        knowledgeBaseUsed: aiResponseData.knowledge_base_used,
-        fromCache: aiResponseData.from_cache,
-        cosineDistance: aiResponseData.cosine_distance,
-        promptSentToModel: aiResponseData.prompt_sent_to_model,
+        knowledgeBaseUsed: aiResponseData.knowledge_base_used, // field from FastAPI
+        fromCache: aiResponseData.from_cache, // field from FastAPI
+        cosineDistance: aiResponseData.cosine_distance, // field from FastAPI
+        promptSentToModel: aiResponseData.prompt_sent_to_model, // field from FastAPI
       };
       
       addMessageToSession(currentSession.id, botMessage);
@@ -190,6 +205,7 @@ export default function ChatPage() {
         description: detailMessage,
         variant: 'destructive',
       });
+       // Add a generic error message to the chat for the user
        const errorMessageContent = "Sorry, I couldn't process your request. Please try again.";
        addMessageToSession(currentSession.id, {
          id: generateId(),
@@ -208,7 +224,7 @@ export default function ChatPage() {
       id: newSessionId,
       name: `Chat ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
       createdAt: Date.now(),
-      messages: [],
+      messages: [], // Start with empty messages; will be fetched if session exists on server
       knowledgeBaseManual: [],
       knowledgeBaseFiles: [],
     };
@@ -216,35 +232,45 @@ export default function ChatPage() {
     if (switchToNew) {
       setCurrentSessionId(newSessionId);
     }
+    // Note: We don't need to explicitly create the session on the backend here.
+    // The backend can create it on the first interaction (e.g., first /chat or /messages call).
     return newSessionId;
   }, []); 
 
   const handleSelectSession = (sessionId: string) => {
     setCurrentSessionId(sessionId);
+    // Messages for the selected session will be fetched by the useEffect hook
   };
 
   const handleDeleteSession = async (sessionId: string) => {
+    if (!sessionId) return;
     setIsLoading(true);
     try {
       await axios.delete(`${API_BASE_URL}/sessions/${sessionId}`);
       
+      // Remove from local state regardless of server success for responsiveness,
+      // but server is the source of truth.
       setSessions(prevSessions => {
         const remainingSessions = prevSessions.filter(s => s.id !== sessionId);
         if (currentSessionId === sessionId) {
           if (remainingSessions.length > 0) {
             setCurrentSessionId(remainingSessions[0].id);
           } else {
-            handleCreateNewSession(true); // This will set the currentSessionId
-            return remainingSessions; // Return empty, new session added by handleCreateNewSession
+            // If no sessions left, create a new one and switch to it
+            const newId = handleCreateNewSession(false); // Create but don't switch yet
+            setCurrentSessionId(newId); // Now switch
+            return remainingSessions; // This will be empty before new one is added by handleCreateNewSession
           }
         }
         return remainingSessions;
       });
-      toast({ title: 'Session Deleted', description: `Session was deleted.` });
+      toast({ title: 'Session Deleted', description: `Session was deleted successfully.` });
 
     } catch (error: any) {
         console.error('Error deleting session:', error);
         let detailMessage = "Could not delete session.";
+        // If server says 404, it means it's already gone or never existed there.
+        // Proceed with local deletion.
         if (axios.isAxiosError(error) && error.response && error.response.status === 404) {
            setSessions(prevSessions => {
              const remainingSessions = prevSessions.filter(s => s.id !== sessionId);
@@ -252,13 +278,14 @@ export default function ChatPage() {
                if (remainingSessions.length > 0) {
                  setCurrentSessionId(remainingSessions[0].id);
                } else {
-                 handleCreateNewSession(true);
+                 const newId = handleCreateNewSession(false);
+                 setCurrentSessionId(newId);
                }
              }
              return remainingSessions;
            });
-           toast({ title: 'Session Deleted', description: `Session removed locally (not found on server).` });
-           return;
+           toast({ title: 'Session Removed', description: `Session removed locally (not found on server).` });
+           return; // Exit early for 404
         } else if (axios.isAxiosError(error) && error.response) {
           detailMessage += ` Server: ${error.response.status} - ${JSON.stringify(error.response.data?.detail || error.response.data || error.message)}`;
         } else if (error instanceof Error) {
@@ -281,16 +308,18 @@ export default function ChatPage() {
     }
     setIsLoading(true);
     try {
+      // Backend request body needs session_id and the entry content
       const response = await axios.post(`${API_BASE_URL}/knowledge-base/add`, { 
         session_id: currentSession.id, 
         entry: entry 
       });
-      const result = response.data;
+      const result = response.data; // Assuming { success: boolean, message: string, id?: string }
       
       if (result.success) {
+        // Update local display list of KB entries for the current session
         setSessions(prevSessions => prevSessions.map(s => 
             s.id === currentSession.id 
-            ? { ...s, knowledgeBaseManual: [...(s.knowledgeBaseManual || []), entry] } 
+            ? { ...s, knowledgeBaseManual: [...(s.knowledgeBaseManual || []), entry] } // Add the raw entry for display
             : s
         ));
         toast({ title: 'Knowledge Base Updated', description: result.message });
@@ -319,20 +348,21 @@ export default function ChatPage() {
     setIsLoading(true);
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('session_id', currentSession.id);
+    formData.append('session_id', currentSession.id); // Server needs session_id
 
     try {
       const response = await axios.post(`${API_BASE_URL}/knowledge-base/upload`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      const result = response.data;
+      const result = response.data; // Assuming { success: boolean, message: string, filename?: string }
 
       if (result.success) {
         const newKbFile: KnowledgeBaseFile = {
-          name: result.filename || file.name,
-          type: file.type.includes('pdf') ? 'pdf' : 'txt',
-          content: `Uploaded: ${result.filename || file.name}`, 
+          name: result.filename || file.name, // Use filename from server if provided
+          type: file.type.includes('pdf') ? 'pdf' : 'txt', // Basic type detection
+          content: `Uploaded: ${result.filename || file.name}`, // Placeholder content for local display
         };
+        // Update local display list of KB files for the current session
         setSessions(prevSessions => prevSessions.map(s =>
             s.id === currentSession.id
             ? { ...s, knowledgeBaseFiles: [...(s.knowledgeBaseFiles || []), newKbFile] }
@@ -356,6 +386,7 @@ export default function ChatPage() {
     }
   };
   
+  // Loading screen until component is mounted and initial session logic is resolved
   if (!isMounted || !currentSessionId || !currentSession) {
      return (
         <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -383,3 +414,5 @@ export default function ChatPage() {
     </ChatLayout>
   );
 }
+
+    
