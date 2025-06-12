@@ -19,6 +19,7 @@ export function ChatWelcome() {
 
   if (theme === 'dark') {
     return (
+      <>
       <div className="flex flex-col items-center justify-center h-full text-center p-4 md:p-8">
         <div className="max-w-md w-full">
           <div className="flex items-center justify-center mb-6">
@@ -29,11 +30,12 @@ export function ChatWelcome() {
           </h2>
           <div className="grid grid-cols-1 gap-3">
             <WelcomeCard text='"Explain quantum computing in simple terms" →' />
-            <WelcomeCard text='"Got any creative ideas for a 10 year old\'s birthday?" →' />
+            <WelcomeCard text='"Got any creative ideas for a 10 year old\s birthday?" →' />
             <WelcomeCard text='"How do I make an HTTP request in Javascript?" →' />
           </div>
         </div>
       </div>
+      </>
     );
   }
 

@@ -54,5 +54,3 @@ export function SessionListItem({ session, isSelected, onSelect, onDelete }: Ses
     </div>
   );
 }
-
-```
