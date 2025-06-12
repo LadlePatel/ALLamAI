@@ -13,7 +13,6 @@ import { SessionListItem } from './session-list-item';
 import type { ChatSession } from '@/types';
 import { PlusSquare, FolderKanban, BookText, Settings, LogOut } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface ChatSidebarContentProps {
   sessions: ChatSession[];
@@ -21,9 +20,9 @@ interface ChatSidebarContentProps {
   onCreateNewSession: () => void;
   onSelectSession: (sessionId: string) => void;
   onDeleteSession: (sessionId: string) => void;
-  onAddManualKbEntry: (entry: string) => Promise<void>; // New prop
-  onAddKbFile: (file: File) => Promise<void>;          // New prop
-  onKnowledgeBaseUpdate: (updatedSession: ChatSession) => void; // Kept for compatibility, but new handlers are primary
+  onAddManualKbEntry: (entry: string) => Promise<void>; 
+  onAddKbFile: (file: File) => Promise<void>;          
+  onKnowledgeBaseUpdate: (updatedSession: ChatSession) => void; 
   sidebarOpen?: boolean; 
 }
 
@@ -33,29 +32,19 @@ export function ChatSidebarContent({
   onCreateNewSession,
   onSelectSession,
   onDeleteSession,
-  onAddManualKbEntry, // Use this
-  onAddKbFile,       // Use this
-  onKnowledgeBaseUpdate, // Keep for now
+  onAddManualKbEntry, 
+  onAddKbFile,       
+  onKnowledgeBaseUpdate, 
 }: ChatSidebarContentProps) {
   
   const isKbDisabled = !currentSession;
 
-  const mockUser = {
-    name: "Gopinath Murugesan",
-    email: "mgopinath2810@gmail.com",
-    avatarUrl: "https://placehold.co/40x40.png",
-  };
-
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
       <div className="p-3 border-b border-sidebar-border flex items-center gap-3">
-        <Avatar className="h-8 w-8">
-          <AvatarImage src={mockUser.avatarUrl} alt={mockUser.name} data-ai-hint="profile person" />
-          <AvatarFallback>{mockUser.name.charAt(0)}</AvatarFallback>
-        </Avatar>
+        <Icons.Logo className="h-8 w-8 text-primary" />
         <div>
-          <p className="text-sm font-medium text-sidebar-foreground">{mockUser.name}</p>
-          <p className="text-xs text-sidebar-foreground/70">{mockUser.email}</p>
+          <p className="text-lg font-semibold text-sidebar-foreground">ALLamAI</p>
         </div>
       </div>
       
@@ -103,12 +92,12 @@ export function ChatSidebarContent({
             </AccordionTrigger>
             <AccordionContent className="pt-1 pb-0 space-y-2">
               <KbManualEntryForm 
-                onAddEntry={onAddManualKbEntry} // Pass the new handler
+                onAddEntry={onAddManualKbEntry} 
                 disabled={isKbDisabled}
               />
               <Separator className="my-2 bg-sidebar-border/50" />
               <KbFileUploadForm 
-                onAddFile={onAddKbFile} // Pass the new handler
+                onAddFile={onAddKbFile} 
                 disabled={isKbDisabled}
               />
             </AccordionContent>
@@ -145,5 +134,3 @@ export function ChatSidebarContent({
     </div>
   );
 }
-
-    
