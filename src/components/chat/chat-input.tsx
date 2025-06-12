@@ -32,8 +32,13 @@ export function ChatInput({ onSendMessage, isLoading }: ChatInputProps) {
 
   useEffect(() => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto'; // Reset height
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`; // Set to scroll height up to max
+      const currentTextarea = textareaRef.current;
+      currentTextarea.style.height = 'auto'; // Reset height to allow min-h to apply or content to dictate
+      
+      // Calculate the new height based on scrollHeight
+      // Ensure it's at least 40px (min-h-10) and at most 120px (max-h-[120px])
+      const newHeight = Math.min(currentTextarea.scrollHeight, 120);
+      currentTextarea.style.height = `${Math.max(newHeight, 40)}px`;
     }
   }, [input]);
   
@@ -54,7 +59,7 @@ export function ChatInput({ onSendMessage, isLoading }: ChatInputProps) {
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="Send a message..."
-        className="flex-1 resize-none overflow-y-auto rounded-xl border border-primary/70 bg-card focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-0 pr-12 text-sm max-h-[120px]"
+        className="flex-1 resize-none overflow-y-auto rounded-xl border border-primary/70 bg-card focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-0 pr-12 text-sm py-2.5 min-h-10 max-h-[120px]"
         rows={1}
         disabled={isLoading}
         aria-label="Chat message input"
