@@ -1,13 +1,14 @@
 
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { UserCircle2, Bot, FileText, Zap, Clock, MessageCircleQuestion, Globe } from 'lucide-react';
+import { UserCircle2, Bot, FileText, Zap, Clock, MessageCircleQuestion, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ChatMessage as Message } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { getLanguageConfig } from '@/config/languages';
+import { Button } from '@/components/ui/button';
 
 interface ChatMessageProps {
   message: Message;
@@ -17,6 +18,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === 'user';
   const userAvatarUrl = "https://placehold.co/40x40.png"; 
   const messageLangConfig = getLanguageConfig(message.language);
+  const [showDetails, setShowDetails] = useState(false);
 
   return (
     <div
@@ -49,12 +51,18 @@ export function ChatMessage({ message }: ChatMessageProps) {
           <p className="text-sm whitespace-pre-wrap font-body">{message.content}</p>
         </div>
         
-        {!isUser && (message.knowledgeBaseUsed || message.fromCache !== undefined || message.durationMs !== undefined || message.promptSentToModel || message.language) && (
+        {!isUser && (message.language || message.durationMs !== undefined || message.fromCache || message.promptSentToModel || message.knowledgeBaseUsed) && (
           <div className="px-3.5 pb-2.5 pt-1.5 border-t border-border/30 space-y-2 mt-1">
             <div className="flex flex-wrap gap-1.5 items-center">
               {message.language && (
                 <Badge variant="outline" className="text-xs py-0.5 px-1.5">
                   <span className="mr-1">{messageLangConfig.flag}</span> {messageLangConfig.name}
+                </Badge>
+              )}
+              {message.durationMs !== undefined && (
+                <Badge variant="outline" className="text-xs py-0.5 px-1.5">
+                    <Clock className="h-3 w-3 mr-1" />
+                    {messageLangConfig.code === 'ar' ? 'الاستجابة' : 'Response'}: {(message.durationMs / 1000).toFixed(2)}s
                 </Badge>
               )}
               {message.fromCache && (
@@ -65,34 +73,43 @@ export function ChatMessage({ message }: ChatMessageProps) {
                   )}
                 </Badge>
               )}
-              {message.durationMs !== undefined && (
-                <Badge variant="outline" className="text-xs py-0.5 px-1.5">
-                    <Clock className="h-3 w-3 mr-1" />
-                    {messageLangConfig.code === 'ar' ? 'زمن الاستجابة' : 'Response'}: {(message.durationMs / 1000).toFixed(2)}s
-                </Badge>
+              {(message.promptSentToModel || (message.knowledgeBaseUsed && message.knowledgeBaseUsed !== "لا توجد معلومة من قاعدة المعرفة." && message.knowledgeBaseUsed !== "No information available in the knowledge base." && message.knowledgeBaseUsed !== "No information found in knowledge base.")) && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowDetails(!showDetails)}
+                  aria-label={showDetails ? (messageLangConfig.code === 'ar' ? 'إخفاء التفاصيل' : 'Hide details') : (messageLangConfig.code === 'ar' ? 'إظهار التفاصيل' : 'Show details')}
+                >
+                  <Info className="h-3.5 w-3.5" />
+                </Button>
               )}
             </div>
 
-            {message.promptSentToModel && (
-              <div className="text-xs text-muted-foreground mt-1.5">
-                <div className="flex items-center gap-1 font-medium mb-0.5">
-                  <MessageCircleQuestion className="h-3.5 w-3.5" />
-                  {messageLangConfig.code === 'ar' ? 'الموجه المرسل للنموذج:' : 'Prompt Sent to Model:'}
-                </div>
-                <p className="pl-1 italic max-h-20 overflow-y-auto bg-muted/30 p-1 rounded-sm text-[0.7rem] leading-tight">
-                  {message.promptSentToModel}
-                </p>
-              </div>
-            )}
-            {message.knowledgeBaseUsed && message.knowledgeBaseUsed !== "لا توجد معلومة من قاعدة المعرفة." && message.knowledgeBaseUsed !== "No information available in the knowledge base." && (
-              <div className="text-xs text-muted-foreground mt-1.5">
-                <div className="flex items-center gap-1 font-medium mb-0.5">
-                  <FileText className="h-3.5 w-3.5" />
-                  {messageLangConfig.code === 'ar' ? 'مقتطف المعرفة المستخدم:' : 'Knowledge Snippet Used:'}
-                </div>
-                <p className="pl-1 italic max-h-20 overflow-y-auto bg-muted/30 p-1 rounded-sm text-[0.7rem] leading-tight">
-                  {message.knowledgeBaseUsed}
-                </p>
+            {showDetails && (
+              <div className="space-y-1.5 mt-2">
+                {message.promptSentToModel && (
+                  <div className="text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1 font-medium mb-0.5">
+                      <MessageCircleQuestion className="h-3.5 w-3.5" />
+                      {messageLangConfig.code === 'ar' ? 'الموجه المرسل للنموذج:' : 'Prompt Sent to Model:'}
+                    </div>
+                    <p className="pl-1 italic max-h-20 overflow-y-auto bg-muted/30 p-1 rounded-sm text-[0.7rem] leading-tight">
+                      {message.promptSentToModel}
+                    </p>
+                  </div>
+                )}
+                {message.knowledgeBaseUsed && message.knowledgeBaseUsed !== "لا توجد معلومة من قاعدة المعرفة." && message.knowledgeBaseUsed !== "No information available in the knowledge base." && message.knowledgeBaseUsed !== "No information found in knowledge base." && (
+                  <div className="text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1 font-medium mb-0.5">
+                      <FileText className="h-3.5 w-3.5" />
+                      {messageLangConfig.code === 'ar' ? 'مقتطف المعرفة المستخدم:' : 'Knowledge Snippet Used:'}
+                    </div>
+                    <p className="pl-1 italic max-h-20 overflow-y-auto bg-muted/30 p-1 rounded-sm text-[0.7rem] leading-tight">
+                      {message.knowledgeBaseUsed}
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>
