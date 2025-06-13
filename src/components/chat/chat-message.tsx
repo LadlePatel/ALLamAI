@@ -1,9 +1,9 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { UserCircle2, Bot, FileText, Zap, Clock, MessageCircleQuestion, Info } from 'lucide-react';
+import { UserCircle2, Bot, FileText, Zap, Clock, MessageCircleQuestion } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ChatMessage as Message } from '@/types';
 import { Badge } from '@/components/ui/badge';
@@ -18,7 +18,6 @@ export function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === 'user';
   const userAvatarUrl = "https://placehold.co/40x40.png"; 
   const messageLangConfig = getLanguageConfig(message.language);
-  const [showDetails, setShowDetails] = useState(false);
 
   return (
     <div
@@ -73,20 +72,10 @@ export function ChatMessage({ message }: ChatMessageProps) {
                   )}
                 </Badge>
               )}
-              {(message.promptSentToModel || (message.knowledgeBaseUsed && message.knowledgeBaseUsed !== "لا توجد معلومة من قاعدة المعرفة." && message.knowledgeBaseUsed !== "No information available in the knowledge base." && message.knowledgeBaseUsed !== "No information found in knowledge base.")) && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
-                  onClick={() => setShowDetails(!showDetails)}
-                  aria-label={showDetails ? (messageLangConfig.code === 'ar' ? 'إخفاء التفاصيل' : 'Hide details') : (messageLangConfig.code === 'ar' ? 'إظهار التفاصيل' : 'Show details')}
-                >
-                  <Info className="h-3.5 w-3.5" />
-                </Button>
-              )}
             </div>
 
-            {showDetails && (
+            {/* Details - always visible if data exists */}
+            {(message.promptSentToModel || (message.knowledgeBaseUsed && message.knowledgeBaseUsed !== "لا توجد معلومة من قاعدة المعرفة." && message.knowledgeBaseUsed !== "No information available in the knowledge base." && message.knowledgeBaseUsed !== "No information found in knowledge base.")) && (
               <div className="space-y-1.5 mt-2">
                 {message.promptSentToModel && (
                   <div className="text-xs text-muted-foreground">
