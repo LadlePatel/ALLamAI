@@ -5,13 +5,15 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { SendHorizonal, Loader2 } from 'lucide-react';
+import type { SupportedLanguage } from '@/types';
 
 interface ChatInputProps {
   onSendMessage: (input: string) => void;
   isLoading: boolean;
+  selectedLanguage: SupportedLanguage;
 }
 
-export function ChatInput({ onSendMessage, isLoading }: ChatInputProps) {
+export function ChatInput({ onSendMessage, isLoading, selectedLanguage }: ChatInputProps) {
   const [input, setInput] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -33,10 +35,8 @@ export function ChatInput({ onSendMessage, isLoading }: ChatInputProps) {
   useEffect(() => {
     if (textareaRef.current) {
       const currentTextarea = textareaRef.current;
-      currentTextarea.style.height = 'auto'; // Reset height to allow min-h to apply or content to dictate
+      currentTextarea.style.height = 'auto'; 
       
-      // Calculate the new height based on scrollHeight
-      // Ensure it's at least 40px (min-h-10) and at most 120px (max-h-[120px])
       const newHeight = Math.min(currentTextarea.scrollHeight, 120);
       currentTextarea.style.height = `${Math.max(newHeight, 40)}px`;
     }
@@ -46,30 +46,32 @@ export function ChatInput({ onSendMessage, isLoading }: ChatInputProps) {
     if (!isLoading && textareaRef.current) {
       textareaRef.current.focus();
     }
-  }, [isLoading]);
+  }, [isLoading, selectedLanguage]); // Re-focus if language changes and not loading
 
   return (
     <form
       onSubmit={handleSubmit}
       className="sticky bottom-0 z-10 flex items-end gap-2 border-t bg-background p-3 md:p-4 shadow-md"
+      dir={selectedLanguage.dir}
     >
       <Textarea
         ref={textareaRef}
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Send a message..."
+        placeholder={selectedLanguage.placeholder}
         className="flex-1 resize-none overflow-y-auto rounded-xl border border-primary/70 bg-card focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-0 pr-12 text-sm py-2.5 min-h-10 max-h-[120px]"
         rows={1}
         disabled={isLoading}
         aria-label="Chat message input"
+        dir={selectedLanguage.dir}
       />
       <Button
         type="submit"
         size="icon"
         className="h-10 w-10 rounded-xl shrink-0"
         disabled={isLoading || !input.trim()}
-        aria-label="Send message"
+        aria-label={selectedLanguage.code === 'ar' ? 'إرسال رسالة' : "Send message"}
       >
         {isLoading ? (
           <Loader2 className="h-5 w-5 animate-spin" />

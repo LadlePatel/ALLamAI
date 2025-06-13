@@ -6,20 +6,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-// import { useToast } from '@/hooks/use-toast'; // Toast handled by parent
-// import type { ChatSession, KnowledgeBaseFile } from '@/types'; // No longer need these types here
 import { FileUp, Loader2 } from 'lucide-react';
+import type { SupportedLanguage } from '@/types';
 
 interface KbFileUploadFormProps {
-  onAddFile: (file: File) => Promise<void>; // Changed prop
+  onAddFile: (file: File) => Promise<void>; 
   disabled?: boolean;
+  selectedLanguage: SupportedLanguage;
 }
 
-export function KbFileUploadForm({ onAddFile, disabled }: KbFileUploadFormProps) {
+export function KbFileUploadForm({ onAddFile, disabled, selectedLanguage }: KbFileUploadFormProps) {
   const [file, setFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  // const { toast } = useToast(); // Parent will handle toasts
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -35,32 +34,36 @@ export function KbFileUploadForm({ onAddFile, disabled }: KbFileUploadFormProps)
 
     setIsLoading(true);
     try {
-      await onAddFile(file); // Call the new prop
-      setFile(null); // Clear file input on successful call
+      await onAddFile(file); 
+      setFile(null); 
       if (fileInputRef.current) {
         fileInputRef.current.value = ""; 
       }
     } catch (error) {
-      // Error handling is now primarily managed by the parent component (page.tsx)
       console.error('Error submitting file upload form:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const titleText = selectedLanguage.code === 'ar' ? 'رفع ملف (.txt, .pdf)' : 'File Upload (.txt, .pdf)';
+  const buttonText = selectedLanguage.code === 'ar' ? 'إضافة ملف إلى قاعدة المعرفة' : 'Add File to KB';
+  const loadingText = selectedLanguage.code === 'ar' ? 'جاري المعالجة...' : 'Processing...';
+
+
   return (
-    <Card className="w-full shadow-none border-none bg-transparent">
+    <Card className="w-full shadow-none border-none bg-transparent" dir={selectedLanguage.dir}>
       <CardHeader className="p-2">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <FileUp className="h-4 w-4" />
-          File Upload (.txt, .pdf)
+          {titleText}
         </CardTitle>
       </CardHeader>
       <CardContent className="p-2">
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
             <Label htmlFor="kb-file-upload" className="sr-only">
-              Upload File
+              {titleText}
             </Label>
             <Input
               id="kb-file-upload"
@@ -70,6 +73,7 @@ export function KbFileUploadForm({ onAddFile, disabled }: KbFileUploadFormProps)
               accept=".txt,.pdf"
               className="text-xs h-9 file:mr-2 file:text-xs file:font-medium file:bg-primary/10 file:text-primary file:border-0 file:rounded file:px-2 file:py-1 hover:file:bg-primary/20"
               disabled={disabled || isLoading}
+              dir={selectedLanguage.dir}
             />
           </div>
           <Button 
@@ -79,12 +83,10 @@ export function KbFileUploadForm({ onAddFile, disabled }: KbFileUploadFormProps)
             size="sm"
           >
             {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-            {isLoading ? 'Processing...' : 'Add File to KB'}
+            {isLoading ? loadingText : buttonText}
           </Button>
         </form>
       </CardContent>
     </Card>
   );
 }
-
-    

@@ -4,6 +4,7 @@ export interface ChatMessage {
   role: 'user' | 'bot';
   content: string;
   timestamp: number;
+  language?: string; // Added for message-specific language
   knowledgeBaseUsed?: string | null;
   fromCache?: boolean;
   durationMs?: number;
@@ -13,8 +14,8 @@ export interface ChatMessage {
 
 export interface KnowledgeBaseFile {
   name:string;
-  type: 'txt' | 'pdf'; // Store original type if needed for display or re-processing
-  content: string; // For TXT, this is raw text. For PDF, this would be extracted text.
+  type: 'txt' | 'pdf';
+  content: string; 
 }
 
 export interface ChatSession {
@@ -26,3 +27,10 @@ export interface ChatSession {
   knowledgeBaseFiles: KnowledgeBaseFile[];
 }
 
+export interface SupportedLanguage {
+  code: string;
+  name: string;
+  flag: string;
+  dir: 'ltr' | 'rtl';
+  placeholder: string;
+}

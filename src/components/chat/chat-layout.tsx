@@ -10,7 +10,7 @@ import {
   SidebarRail,
 } from '@/components/ui/sidebar';
 import { ChatSidebarContent } from './chat-sidebar-content';
-import type { ChatSession } from '@/types';
+import type { ChatSession, SupportedLanguage } from '@/types';
 
 interface ChatLayoutProps {
   sessions: ChatSession[];
@@ -21,6 +21,9 @@ interface ChatLayoutProps {
   onAddManualKbEntry: (entry: string) => Promise<void>; 
   onAddKbFile: (file: File) => Promise<void>;          
   children: React.ReactNode; // For ChatArea
+  selectedLanguage: SupportedLanguage;
+  onSetSelectedLanguage: (languageCode: string) => void;
+  supportedLanguages: SupportedLanguage[];
 }
 
 export function ChatLayout({
@@ -32,6 +35,9 @@ export function ChatLayout({
   onAddManualKbEntry,
   onAddKbFile,
   children,
+  selectedLanguage,
+  onSetSelectedLanguage,
+  supportedLanguages,
 }: ChatLayoutProps) {
   return (
     <SidebarProvider defaultOpen={true}>
@@ -44,7 +50,10 @@ export function ChatLayout({
             onSelectSession={onSelectSession}
             onDeleteSession={onDeleteSession}
             onAddManualKbEntry={onAddManualKbEntry} 
-            onAddKbFile={onAddKbFile}               
+            onAddKbFile={onAddKbFile}  
+            selectedLanguage={selectedLanguage}
+            onSetSelectedLanguage={onSetSelectedLanguage}
+            supportedLanguages={supportedLanguages}             
           />
           <SidebarRail />
         </Sidebar>
@@ -61,5 +70,3 @@ export function ChatLayout({
     </SidebarProvider>
   );
 }
-
-    

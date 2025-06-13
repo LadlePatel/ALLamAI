@@ -1,13 +1,14 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { ChatLayout } from '@/components/chat/chat-layout';
 import { ChatArea } from '@/components/chat/chat-area';
-import type { ChatMessage, ChatSession, KnowledgeBaseFile } from '@/types';
+import type { ChatMessage, ChatSession, KnowledgeBaseFile, SupportedLanguage } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Icons } from '@/components/icons';
+import { SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE_CODE, getLanguageConfig } from '@/config/languages';
 
 const API_BASE_URL = 'http://34.134.224.160:8000'; 
 
@@ -15,17 +16,19 @@ const generateId = () => Math.random().toString(36).substr(2, 9);
 
 const SESSIONS_STORAGE_KEY = 'allamai-sessions';
 const CURRENT_SESSION_ID_STORAGE_KEY = 'allamai-current-session-id';
+const SELECTED_LANGUAGE_STORAGE_KEY = 'allamai-selected-language';
 
 export default function ChatPage() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [selectedLanguage, setSelectedLanguageState] = useState<SupportedLanguage>(() => getLanguageConfig(DEFAULT_LANGUAGE_CODE));
   const { toast } = useToast();
 
   const currentSession = sessions.find(s => s.id === currentSessionId);
 
-  // Load session list from localStorage on mount
+  // Load session list and language from localStorage on mount
   useEffect(() => {
     setIsMounted(true);
     try {
@@ -50,14 +53,23 @@ export default function ChatPage() {
       } else {
         handleCreateNewSession(true); 
       }
+
+      const storedLanguageCode = localStorage.getItem(SELECTED_LANGUAGE_STORAGE_KEY);
+      setSelectedLanguageState(getLanguageConfig(storedLanguageCode || DEFAULT_LANGUAGE_CODE));
+
     } catch (error) {
-      console.error("Failed to load session list from localStorage", error);
+      console.error("Failed to load session data from localStorage", error);
       toast({ title: "Error", description: "Could not load session data. Starting fresh.", variant: "destructive" });
       handleCreateNewSession(true); 
+      setSelectedLanguageState(getLanguageConfig(DEFAULT_LANGUAGE_CODE));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toast]);
 
+  const setSelectedLanguage = useCallback((languageCode: string) => {
+    setSelectedLanguageState(getLanguageConfig(languageCode));
+    localStorage.setItem(SELECTED_LANGUAGE_STORAGE_KEY, languageCode);
+  }, []);
 
   // Fetch messages for the current session when it changes or on mount
   useEffect(() => {
@@ -68,7 +80,10 @@ export default function ChatPage() {
       try {
         const response = await axios.get(`${API_BASE_URL}/sessions/${currentSessionId}/messages`);
         const messagesData = response.data;
-        const fetchedMessages = Array.isArray(messagesData.messages) ? messagesData.messages : (Array.isArray(messagesData) ? messagesData : []);
+        const fetchedMessages: ChatMessage[] = (Array.isArray(messagesData.messages) ? messagesData.messages : (Array.isArray(messagesData) ? messagesData : [])).map((msg: any) => ({
+          ...msg,
+          language: msg.language || selectedLanguage.code, // Ensure language is set
+        }));
 
         setSessions(prevSessions =>
           prevSessions.map(s =>
@@ -109,7 +124,7 @@ export default function ChatPage() {
 
     fetchMessages();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSessionId, isMounted, toast]); 
+  }, [currentSessionId, isMounted, toast, selectedLanguage.code]); 
 
 
   // Save session list (metadata only) to localStorage when it changes
@@ -153,6 +168,7 @@ export default function ChatPage() {
       role: 'user',
       content: userInput,
       timestamp: Date.now(),
+      language: selectedLanguage.code,
     };
 
     addMessageToSession(currentSession.id, userMessage);
@@ -161,7 +177,8 @@ export default function ChatPage() {
     try {
       const apiRequestBody = {
         session_id: currentSession.id, 
-        question: userInput, // Changed from user_input to question
+        question: userInput,
+        language: selectedLanguage.code,
       };
 
       const response = await axios.post(`${API_BASE_URL}/chat`, apiRequestBody);
@@ -170,9 +187,10 @@ export default function ChatPage() {
       const botMessage: ChatMessage = {
         id: generateId(),
         role: 'bot',
-        content: aiResponseData.final_answer, // Use final_answer
+        content: aiResponseData.final_answer,
         timestamp: Date.now(), 
-        durationMs: aiResponseData.response_time ? Math.round(aiResponseData.response_time * 1000) : undefined, // Use server response_time
+        language: aiResponseData.language || selectedLanguage.code,
+        durationMs: aiResponseData.response_time ? Math.round(aiResponseData.response_time * 1000) : undefined,
         knowledgeBaseUsed: aiResponseData.kb_used, 
         fromCache: aiResponseData.cached, 
         cosineDistance: aiResponseData.distance,
@@ -180,6 +198,11 @@ export default function ChatPage() {
       };
       
       addMessageToSession(currentSession.id, botMessage);
+
+      // If backend detected and responded in a different language, update UI
+      if (aiResponseData.language && aiResponseData.language !== selectedLanguage.code) {
+        setSelectedLanguage(aiResponseData.language);
+      }
 
     } catch (error: any) {
       console.error('Error getting AI response:', error);
@@ -194,12 +217,13 @@ export default function ChatPage() {
         description: detailMessage,
         variant: 'destructive',
       });
-       const errorMessageContent = "Sorry, I couldn't process your request. Please try again.";
+       const errorMessageContent = selectedLanguage.code === 'ar' ? "عذراً، لم أتمكن من معالجة طلبك. الرجاء المحاولة مرة أخرى." : "Sorry, I couldn't process your request. Please try again.";
        addMessageToSession(currentSession.id, {
          id: generateId(),
          role: 'bot',
          content: errorMessageContent,
          timestamp: Date.now(),
+         language: selectedLanguage.code,
        });
     } finally {
       setIsLoading(false);
@@ -208,9 +232,12 @@ export default function ChatPage() {
 
   const handleCreateNewSession = useCallback((switchToNew = true) => {
     const newSessionId = generateId();
+    const newSessionName = selectedLanguage.code === 'ar' 
+        ? `محادثة ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+        : `Chat ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
     const newSession: ChatSession = {
       id: newSessionId,
-      name: `Chat ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+      name: newSessionName,
       createdAt: Date.now(),
       messages: [], 
       knowledgeBaseManual: [],
@@ -221,7 +248,7 @@ export default function ChatPage() {
       setCurrentSessionId(newSessionId);
     }
     return newSessionId;
-  }, []); 
+  }, [selectedLanguage.code]); 
 
   const handleSelectSession = (sessionId: string) => {
     setCurrentSessionId(sessionId);
@@ -241,12 +268,10 @@ export default function ChatPage() {
           } else {
             const newId = handleCreateNewSession(false); 
             setCurrentSessionId(newId); 
-            // The new session will be added by handleCreateNewSession, so just return remaining (which might be empty)
-             const sessionsAfterDeletion = prevSessions.filter(s => s.id !== sessionId);
+            const sessionsAfterDeletion = prevSessions.filter(s => s.id !== sessionId);
             if (sessionsAfterDeletion.length === 0) {
-                const newlyCreatedSessionId = handleCreateNewSession(true); // Create and switch
-                // setSessions will be updated by handleCreateNewSession
-                return []; // Return empty as setSessions will handle adding the new one
+                handleCreateNewSession(true); 
+                return []; 
             }
             setCurrentSessionId(sessionsAfterDeletion[0].id);
             return sessionsAfterDeletion;
@@ -266,9 +291,8 @@ export default function ChatPage() {
                if (remainingSessions.length > 0) {
                  setCurrentSessionId(remainingSessions[0].id);
                } else {
-                 const newId = handleCreateNewSession(true); // Create and switch
-                 // setSessions will be updated by handleCreateNewSession
-                 return []; // Return empty to avoid duplicate new session
+                 handleCreateNewSession(true); 
+                 return []; 
                }
              }
              return remainingSessions;
@@ -299,7 +323,8 @@ export default function ChatPage() {
     try {
       const response = await axios.post(`${API_BASE_URL}/knowledge-base/add`, { 
         session_id: currentSession.id, 
-        entry: entry 
+        entry: entry,
+        language: selectedLanguage.code,
       });
       const result = response.data; 
       
@@ -336,6 +361,7 @@ export default function ChatPage() {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('session_id', currentSession.id); 
+    formData.append('language', selectedLanguage.code);
 
     try {
       const response = await axios.post(`${API_BASE_URL}/knowledge-base/upload`, formData, {
@@ -389,15 +415,17 @@ export default function ChatPage() {
       onDeleteSession={handleDeleteSession}
       onAddManualKbEntry={handleAddManualKbEntry}
       onAddKbFile={handleAddKbFile}
+      selectedLanguage={selectedLanguage}
+      onSetSelectedLanguage={setSelectedLanguage}
+      supportedLanguages={SUPPORTED_LANGUAGES}
     >
       <ChatArea
         messages={currentSession?.messages || []}
         isLoading={isLoading}
         onSendMessage={handleSendMessage}
         currentSessionId={currentSessionId}
+        selectedLanguage={selectedLanguage}
       />
     </ChatLayout>
   );
 }
-
-    
